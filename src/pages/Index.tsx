@@ -1,53 +1,215 @@
-
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import GroceryHeader from "@/components/GroceryHeader";
 import BudgetCard from "@/components/BudgetCard";
-import GroceryItem from "@/components/GroceryItem";
-import AddEditItemDialog from "@/components/AddEditItemDialog";
-import { GroceryItem as GroceryItemType, BudgetSummary } from "@/types/grocery";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Plus, Minus, ShoppingCart, Package, Trash2 } from "lucide-react";
+import { Product, Category, GroceryListItem, BudgetSummary } from "@/types/grocery";
 
 const Index = () => {
-  const [groceryItems, setGroceryItems] = useState<GroceryItemType[]>([
-    {
-      id: '1',
-      name: 'Bananas',
-      quantity: 6,
-      price: 2.99,
-      category: 'produce',
-      purchased: false,
-      createdAt: new Date()
-    },
-    {
-      id: '2',
-      name: 'Milk',
-      quantity: 1,
-      price: 3.49,
-      category: 'dairy',
-      purchased: true,
-      createdAt: new Date()
-    },
-    {
-      id: '3',
-      name: 'Instant Ramen',
-      quantity: 12,
-      price: 4.99,
-      category: 'snacks',
-      purchased: false,
-      createdAt: new Date()
-    }
-  ]);
+  const { user, profile, loading: authLoading } = useAuth();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [groceryList, setGroceryList] = useState<GroceryListItem[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<GroceryItemType | undefined>();
+  useEffect(() => {
+    if (!authLoading) {
+      fetchData();
+    }
+  }, [authLoading, user]);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch categories and products
+      const [categoriesResult, productsResult] = await Promise.all([
+        supabase.from('categories').select('*').order('name'),
+        supabase.from('products').select(`
+          *,
+          category:categories(id, name, description, created_at, updated_at)
+        `).order('name')
+      ]);
+
+      if (categoriesResult.error) throw categoriesResult.error;
+      if (productsResult.error) throw productsResult.error;
+
+      setCategories(categoriesResult.data || []);
+      setProducts(productsResult.data || []);
+
+      // Fetch user's grocery list if authenticated
+      if (user) {
+        const { data: listData, error: listError } = await supabase
+          .from('grocery_lists')
+          .select(`
+            *,
+            product:products(
+              *,
+              category:categories(id, name, description, created_at, updated_at)
+            )
+          `)
+          .eq('user_id', user.id);
+
+        if (listError) throw listError;
+        setGroceryList(listData || []);
+      }
+    } catch (error: any) {
+      console.error('Error fetching data:', error);
+      toast.error('Failed to load data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const addToGroceryList = async (product: Product, quantity: number = 1) => {
+    if (!user) {
+      toast.error('Please sign in to add items to your list');
+      return;
+    }
+
+    try {
+      // Check if item already exists
+      const existingItem = groceryList.find(item => item.product_id === product.id);
+      
+      if (existingItem) {
+        // Update quantity
+        const { error } = await supabase
+          .from('grocery_lists')
+          .update({ quantity: existingItem.quantity + quantity })
+          .eq('id', existingItem.id);
+
+        if (error) throw error;
+        
+        setGroceryList(prev => prev.map(item => 
+          item.id === existingItem.id 
+            ? { ...item, quantity: item.quantity + quantity }
+            : item
+        ));
+        
+        toast.success(`Updated ${product.name} quantity`);
+      } else {
+        // Add new item
+        const { data, error } = await supabase
+          .from('grocery_lists')
+          .insert({
+            user_id: user.id,
+            product_id: product.id,
+            quantity
+          })
+          .select(`
+            *,
+            product:products(
+              *,
+              category:categories(id, name, description, created_at, updated_at)
+            )
+          `)
+          .single();
+
+        if (error) throw error;
+        
+        setGroceryList(prev => [...prev, data]);
+        toast.success(`Added ${product.name} to your list`);
+      }
+    } catch (error: any) {
+      console.error('Error adding to grocery list:', error);
+      toast.error('Failed to add item to list');
+    }
+  };
+
+  const updateQuantity = async (listItemId: number, newQuantity: number) => {
+    if (newQuantity <= 0) {
+      removeFromList(listItemId);
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('grocery_lists')
+        .update({ quantity: newQuantity })
+        .eq('id', listItemId);
+
+      if (error) throw error;
+
+      setGroceryList(prev => prev.map(item => 
+        item.id === listItemId 
+          ? { ...item, quantity: newQuantity }
+          : item
+      ));
+    } catch (error: any) {
+      console.error('Error updating quantity:', error);
+      toast.error('Failed to update quantity');
+    }
+  };
+
+  const togglePurchased = async (listItemId: number) => {
+    const item = groceryList.find(i => i.id === listItemId);
+    if (!item) return;
+
+    try {
+      const { error } = await supabase
+        .from('grocery_lists')
+        .update({ is_purchased: !item.is_purchased })
+        .eq('id', listItemId);
+
+      if (error) throw error;
+
+      setGroceryList(prev => prev.map(listItem => 
+        listItem.id === listItemId 
+          ? { ...listItem, is_purchased: !listItem.is_purchased }
+          : listItem
+      ));
+
+      toast.success(item.is_purchased ? 'Item unmarked as purchased' : 'Item marked as purchased');
+    } catch (error: any) {
+      console.error('Error toggling purchased:', error);
+      toast.error('Failed to update item');
+    }
+  };
+
+  const removeFromList = async (listItemId: number) => {
+    try {
+      const { error } = await supabase
+        .from('grocery_lists')
+        .delete()
+        .eq('id', listItemId);
+
+      if (error) throw error;
+
+      setGroceryList(prev => prev.filter(item => item.id !== listItemId));
+      toast.success('Item removed from list');
+    } catch (error: any) {
+      console.error('Error removing item:', error);
+      toast.error('Failed to remove item');
+    }
+  };
+
+  const filteredProducts = useMemo(() => {
+    return products.filter(product => {
+      const matchesCategory = selectedCategory === 'all' || product.category_id?.toString() === selectedCategory;
+      const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesCategory && matchesSearch;
+    });
+  }, [products, selectedCategory, searchTerm]);
 
   const budgetSummary: BudgetSummary = useMemo(() => {
-    const totalItems = groceryItems.length;
-    const totalCost = groceryItems.reduce((sum, item) => sum + item.price, 0);
-    const purchasedItems = groceryItems.filter(item => item.purchased).length;
-    const purchasedCost = groceryItems
-      .filter(item => item.purchased)
-      .reduce((sum, item) => sum + item.price, 0);
+    const totalItems = groceryList.length;
+    const totalCost = groceryList.reduce((sum, item) => sum + (item.product?.price || 0) * item.quantity, 0);
+    const purchasedItems = groceryList.filter(item => item.is_purchased).length;
+    const purchasedCost = groceryList
+      .filter(item => item.is_purchased)
+      .reduce((sum, item) => sum + (item.product?.price || 0) * item.quantity, 0);
     const remainingCost = totalCost - purchasedCost;
 
     return {
@@ -57,135 +219,206 @@ const Index = () => {
       purchasedCost,
       remainingCost
     };
-  }, [groceryItems]);
+  }, [groceryList]);
 
-  const handleAddItem = () => {
-    setEditingItem(undefined);
-    setIsDialogOpen(true);
-  };
-
-  const handleEditItem = (item: GroceryItemType) => {
-    setEditingItem(item);
-    setIsDialogOpen(true);
-  };
-
-  const handleSaveItem = (itemData: Omit<GroceryItemType, 'id' | 'createdAt'>) => {
-    if (editingItem) {
-      // Update existing item
-      setGroceryItems(items => 
-        items.map(item => 
-          item.id === editingItem.id 
-            ? { ...itemData, id: editingItem.id, createdAt: editingItem.createdAt }
-            : item
-        )
-      );
-      toast.success("Item updated successfully!");
-    } else {
-      // Add new item
-      const newItem: GroceryItemType = {
-        ...itemData,
-        id: Date.now().toString(),
-        createdAt: new Date()
-      };
-      setGroceryItems(items => [...items, newItem]);
-      toast.success("Item added to your list!");
-    }
-  };
-
-  const handleDeleteItem = (id: string) => {
-    setGroceryItems(items => items.filter(item => item.id !== id));
-    toast.success("Item removed from your list!");
-  };
-
-  const handleTogglePurchased = (id: string) => {
-    setGroceryItems(items =>
-      items.map(item =>
-        item.id === id 
-          ? { ...item, purchased: !item.purchased }
-          : item
-      )
-    );
-    
-    const item = groceryItems.find(item => item.id === id);
-    if (item) {
-      toast.success(item.purchased ? "Item unmarked as purchased" : "Item marked as purchased!");
-    }
-  };
-
-  // Group items by category for better organization
-  const groupedItems = useMemo(() => {
-    const groups = groceryItems.reduce((acc, item) => {
-      if (!acc[item.category]) {
-        acc[item.category] = [];
+  const groupedGroceryList = useMemo(() => {
+    const groups = groceryList.reduce((acc, item) => {
+      const categoryName = item.product?.category?.name || 'Other';
+      if (!acc[categoryName]) {
+        acc[categoryName] = [];
       }
-      acc[item.category].push(item);
+      acc[categoryName].push(item);
       return acc;
-    }, {} as Record<string, GroceryItemType[]>);
+    }, {} as Record<string, GroceryListItem[]>);
 
-    // Sort within each category by purchased status (unpurchased first)
+    // Sort within each category by purchased status
     Object.keys(groups).forEach(category => {
       groups[category].sort((a, b) => {
-        if (a.purchased === b.purchased) return 0;
-        return a.purchased ? 1 : -1;
+        if (a.is_purchased === b.is_purchased) return 0;
+        return a.is_purchased ? 1 : -1;
       });
     });
 
     return groups;
-  }, [groceryItems]);
+  }, [groceryList]);
+
+  if (authLoading || loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <div className="container mx-auto px-4 py-8">
-        <GroceryHeader onAddClick={handleAddItem} />
+        <GroceryHeader 
+          onAddClick={() => setDialogOpen(true)} 
+          showAddButton={true}
+        />
         
-        <BudgetCard budget={budgetSummary} />
+        {user && <BudgetCard budget={budgetSummary} />}
 
-        <div className="mt-8">
-          {groceryItems.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="text-6xl mb-4">🛒</div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Your grocery list is empty</h3>
-              <p className="text-gray-600 mb-6">Start adding items to track your shopping and budget!</p>
-              <button 
-                onClick={handleAddItem}
-                className="grocery-gradient text-white px-6 py-3 rounded-lg font-medium hover:opacity-90 transition-opacity"
-              >
-                Add Your First Item
-              </button>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+          {/* Products Section */}
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-gray-900">Available Products</h2>
             </div>
-          ) : (
-            <div className="space-y-6">
-              {Object.entries(groupedItems).map(([category, items]) => (
-                <div key={category} className="space-y-3">
-                  <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <span className="capitalize">{category}</span>
-                    <span className="text-sm text-gray-500 font-normal">({items.length} items)</span>
-                  </h2>
-                  
-                  <div className="grid gap-3">
-                    {items.map(item => (
-                      <GroceryItem
-                        key={item.id}
-                        item={item}
-                        onTogglePurchased={handleTogglePurchased}
-                        onEdit={handleEditItem}
-                        onDelete={handleDeleteItem}
-                      />
+
+            <div className="space-y-4">
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <Input
+                    placeholder="Search products..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id.toString()}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid gap-3 max-h-96 overflow-y-auto">
+                {filteredProducts.length === 0 ? (
+                  <Card>
+                    <CardContent className="p-6 text-center">
+                      <Package className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                      <h3 className="text-lg font-semibold mb-2">No Products Found</h3>
+                      <p className="text-gray-600">No products match your search criteria.</p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  filteredProducts.map((product) => (
+                    <Card key={product.id} className="hover:shadow-md transition-shadow">
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <h3 className="font-semibold">{product.name}</h3>
+                            {product.description && (
+                              <p className="text-sm text-gray-600 mt-1">{product.description}</p>
+                            )}
+                            <div className="flex items-center gap-2 mt-2">
+                              <span className="font-bold text-green-600">${product.price}</span>
+                              {product.category && (
+                                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                  {product.category.name}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <Button
+                            size="sm"
+                            onClick={() => addToGroceryList(product)}
+                            className="grocery-gradient text-white"
+                            disabled={!user}
+                          >
+                            <Plus className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Grocery List Section */}
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-gray-900">
+              {user ? 'My Grocery List' : 'Sign in to create your list'}
+            </h2>
+
+            {!user ? (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <ShoppingCart className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                  <h3 className="text-lg font-semibold mb-2">Sign In Required</h3>
+                  <p className="text-gray-600 mb-4">
+                    Sign in to create and manage your personal grocery list.
+                  </p>
+                  <Button onClick={() => window.location.href = '/auth'}>
+                    Sign In
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : groceryList.length === 0 ? (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <ShoppingCart className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                  <h3 className="text-lg font-semibold mb-2">Your list is empty</h3>
+                  <p className="text-gray-600">Start adding products to your grocery list!</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4 max-h-96 overflow-y-auto">
+                {Object.entries(groupedGroceryList).map(([categoryName, items]) => (
+                  <div key={categoryName} className="space-y-2">
+                    <h3 className="font-semibold text-gray-900">{categoryName}</h3>
+                    {items.map((item) => (
+                      <Card key={item.id} className={`${item.is_purchased ? 'opacity-60' : ''}`}>
+                        <CardContent className="p-4">
+                          <div className="flex items-center gap-3">
+                            <Checkbox
+                              checked={item.is_purchased}
+                              onCheckedChange={() => togglePurchased(item.id)}
+                            />
+                            <div className="flex-1">
+                              <h4 className={`font-medium ${item.is_purchased ? 'line-through' : ''}`}>
+                                {item.product?.name}
+                              </h4>
+                              <p className="text-sm text-gray-600">
+                                ${item.product?.price} × {item.quantity} = ${((item.product?.price || 0) * item.quantity).toFixed(2)}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                              >
+                                <Minus className="w-3 h-3" />
+                              </Button>
+                              <span className="w-8 text-center">{item.quantity}</span>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                              >
+                                <Plus className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => removeFromList(item.id)}
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
                     ))}
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
-
-      <AddEditItemDialog
-        open={isDialogOpen}
-        onClose={() => setIsDialogOpen(false)}
-        onSave={handleSaveItem}
-        editingItem={editingItem}
-      />
     </div>
   );
 };
