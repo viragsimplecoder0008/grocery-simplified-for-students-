@@ -48,17 +48,7 @@ const Auth = () => {
         toast.success('Account created! Please check your email for confirmation.');
       } else {
         toast.success('Welcome back!');
-        // Wait a moment for the auth state to update with profile info
-        setTimeout(() => {
-          // Redirect based on email (since profile might not be loaded yet)
-          if (formData.email === 'admin@grocerysimplified.com') {
-            navigate('/admin');
-          } else if (formData.email === 'GrocerySimplified@web.com') {
-            navigate('/categories');
-          } else {
-            navigate('/');
-          }
-        }, 500);
+        navigate('/');
       }
     } catch (error: any) {
       toast.error('An unexpected error occurred');
@@ -70,13 +60,13 @@ const Auth = () => {
   const predefinedAccounts = [
     {
       email: 'admin@grocerysimplified.com',
-      password: 'GroceryIsNowSimplified',
+      password: 'gr0(ery$!mPl!F!Ed',
       role: 'Admin',
       description: 'Can add and manage products'
     },
     {
-      email: 'GrocerySimplified@web.com',
-      password: 'web',
+      email: 'GrocerySimplifed@web.com',
+      password: '',
       role: 'Category Manager',
       description: 'Can create and manage categories'
     }
@@ -86,33 +76,17 @@ const Auth = () => {
     setFormData({ ...formData, email, password });
     setIsLoading(true);
     
-    console.log('Attempting login with:', { email, password }); // Debug log
-    
     try {
       const { error } = await signIn(email, password);
       
       if (error) {
-        console.error('Login error:', error); // Debug log
         toast.error(error.message || 'Login failed');
         return;
       }
       
-      console.log('Login successful for:', email); // Debug log
       toast.success('Successfully logged in!');
-      
-      // Redirect based on the account type
-      if (email === 'admin@grocerysimplified.com') {
-        console.log('Redirecting to /admin'); // Debug log
-        navigate('/admin');
-      } else if (email === 'GrocerySimplified@web.com') {
-        console.log('Redirecting to /categories'); // Debug log
-        navigate('/categories');
-      } else {
-        console.log('Redirecting to /'); // Debug log
-        navigate('/');
-      }
+      navigate('/');
     } catch (error: any) {
-      console.error('Unexpected error:', error); // Debug log
       toast.error('An unexpected error occurred');
     } finally {
       setIsLoading(false);
@@ -120,7 +94,7 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen page-gradient flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
           <div className="grocery-gradient p-4 rounded-xl w-16 h-16 mx-auto mb-4 flex items-center justify-center">

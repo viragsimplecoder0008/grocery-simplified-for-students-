@@ -1,7 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useCurrency } from "@/hooks/useCurrency";
-import { formatPrice } from "@/lib/currency";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import GroceryHeader from "@/components/GroceryHeader";
@@ -18,7 +16,6 @@ import { Product, Category, GroceryListItem, BudgetSummary } from "@/types/groce
 
 const Index = () => {
   const { user, profile, loading: authLoading } = useAuth();
-  const { currency } = useCurrency();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [groceryList, setGroceryList] = useState<GroceryListItem[]>([]);
@@ -247,14 +244,14 @@ const Index = () => {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen page-gradient flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-2 border-white border-t-transparent rounded-full"></div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen page-gradient">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <div className="container mx-auto px-4 py-8">
         <GroceryHeader 
           onAddClick={() => setDialogOpen(true)} 
@@ -314,7 +311,7 @@ const Index = () => {
                               <p className="text-sm text-gray-600 mt-1">{product.description}</p>
                             )}
                             <div className="flex items-center gap-2 mt-2">
-                              <span className="font-bold text-green-600">{formatPrice(product.price, currency)}</span>
+                              <span className="font-bold text-green-600">${product.price}</span>
                               {product.category && (
                                 <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
                                   {product.category.name}
@@ -384,7 +381,7 @@ const Index = () => {
                                 {item.product?.name}
                               </h4>
                               <p className="text-sm text-gray-600">
-                                {formatPrice(item.product?.price || 0, currency)} × {item.quantity} = {formatPrice((item.product?.price || 0) * item.quantity, currency)}
+                                ${item.product?.price} × {item.quantity} = ${((item.product?.price || 0) * item.quantity).toFixed(2)}
                               </p>
                             </div>
                             <div className="flex items-center gap-2">

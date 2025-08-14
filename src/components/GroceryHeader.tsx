@@ -2,7 +2,6 @@ import { ShoppingCart, Plus, User, LogOut, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
-import CurrencySelector from "@/components/CurrencySelector";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -52,9 +51,6 @@ const GroceryHeader = ({ onAddClick, showAddButton = false }: GroceryHeaderProps
       </div>
       
       <div className="flex items-center gap-3">
-        {/* Currency Selector - Always visible */}
-        <CurrencySelector compact />
-        
         {showAddButton && onAddClick && (
           <Button 
             onClick={onAddClick}
