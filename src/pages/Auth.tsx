@@ -252,34 +252,6 @@ const Auth = () => {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Quick Access</CardTitle>
-            <CardDescription className="text-xs">
-              Use these predefined accounts for testing
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {predefinedAccounts.map((account, index) => (
-              <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex-1">
-                  <p className="font-medium text-sm">{account.role}</p>
-                  <p className="text-xs text-gray-600">{account.description}</p>
-                  <p className="text-xs text-gray-500">{account.email}</p>
-                </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handlePredefinedLogin(account.email, account.password)}
-                  disabled={isLoading}
-                >
-                  Use
-                </Button>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
         <div className="text-center">
           <Button
             variant="link"
