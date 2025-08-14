@@ -16,7 +16,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 142 76% 36%;
+    --primary: 219 91% 60%;
     --primary-foreground: 0 0% 98%;
 
     --secondary: 210 40% 96.1%;
@@ -25,23 +25,25 @@
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 43 96% 56%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 268 82% 60%;
+    --accent-foreground: 0 0% 98%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 142 76% 36%;
+    --ring: 219 91% 60%;
 
     --radius: 0.75rem;
 
-    /* Custom grocery app colors */
-    --grocery-mint: 142 76% 36%;
-    --grocery-mint-light: 142 76% 45%;
-    --grocery-orange: 43 96% 56%;
-    --grocery-orange-light: 43 96% 65%;
+    /* Updated grocery app colors with blue-purple theme */
+    --grocery-primary: 219 91% 60%;
+    --grocery-primary-light: 219 91% 70%;
+    --grocery-secondary: 268 82% 60%;
+    --grocery-secondary-light: 268 82% 70%;
+    --grocery-accent: 43 96% 56%;
+    --grocery-accent-light: 43 96% 65%;
     --grocery-gray: 220 13% 91%;
     --grocery-gray-dark: 215.4 16.3% 46.9%;
     --grocery-success: 142 69% 58%;
@@ -112,7 +114,23 @@
 
 @layer components {
   .grocery-gradient {
-    background: linear-gradient(135deg, hsl(var(--grocery-mint)) 0%, hsl(var(--grocery-mint-light)) 100%);
+    background: linear-gradient(135deg, hsl(var(--grocery-primary)) 0%, hsl(var(--grocery-secondary)) 100%);
+  }
+
+  .grocery-gradient-light {
+    background: linear-gradient(135deg, rgba(66, 153, 225, 0.2) 0%, rgba(159, 122, 234, 0.2) 100%);
+  }
+
+  .page-gradient {
+    background: linear-gradient(135deg, hsl(var(--grocery-primary)) 0%, hsl(var(--grocery-secondary)) 100%);
+  }
+  
+  .text-shadow {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+  
+  .text-shadow-lg {
+    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
   }
 
   .category-produce {

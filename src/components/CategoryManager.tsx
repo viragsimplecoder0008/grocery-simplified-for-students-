@@ -11,7 +11,7 @@ import { Plus, Edit, Package } from 'lucide-react';
 import { Category } from '@/types/grocery';
 import { toast } from 'sonner';
 
-const CategoryManagement: React.FC = () => {
+const CategoryManager: React.FC = () => {
   const { isCategoryManager, isAdmin, user, profile, loading: authLoading } = useAuth();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,7 +42,12 @@ const CategoryManagement: React.FC = () => {
         .select('*')
         .order('name');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        toast.error(`Failed to load categories: ${error.message}`);
+        throw error;
+      }
+      
       setCategories(data || []);
     } catch (error) {
       console.error('Error fetching categories:', error);
@@ -59,8 +64,7 @@ const CategoryManagement: React.FC = () => {
       const categoryData = {
         name: formData.name.trim(),
         description: formData.description.trim(),
-        color: formData.color,
-        created_by: user?.id
+        color: formData.color
       };
 
       if (editingCategory) {
@@ -69,14 +73,22 @@ const CategoryManagement: React.FC = () => {
           .update(categoryData)
           .eq('id', editingCategory.id);
         
-        if (error) throw error;
+        if (error) {
+          console.error('Update error:', error);
+          toast.error(`Failed to update category: ${error.message}`);
+          throw error;
+        }
         toast.success('Category updated successfully');
       } else {
         const { error } = await supabase
           .from('categories')
           .insert([categoryData]);
         
-        if (error) throw error;
+        if (error) {
+          console.error('Insert error:', error);
+          toast.error(`Failed to create category: ${error.message}`);
+          throw error;
+        }
         toast.success('Category created successfully');
       }
 
@@ -86,7 +98,7 @@ const CategoryManagement: React.FC = () => {
       await fetchCategories();
     } catch (error) {
       console.error('Error saving category:', error);
-      toast.error('Failed to save category');
+      // Error message already shown above
     }
   };
 
@@ -153,10 +165,11 @@ const CategoryManagement: React.FC = () => {
           <DialogTrigger asChild>
             <Button 
               onClick={() => setDialogOpen(true)}
-              className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-6 py-2 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+              className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-6 py-2 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 font-bold text-lg"
+              size="lg"
             >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Category
+              <Plus className="h-5 w-5 mr-2" />
+              ADD CATEGORY
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
@@ -232,13 +245,18 @@ const CategoryManagement: React.FC = () => {
 
       {/* Debug Info */}
       <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-        <h3 className="font-semibold text-blue-800 mb-2">Debug Information:</h3>
-        <div className="text-sm text-blue-700">
-          <p>User Role: {profile?.role || 'Unknown'}</p>
-          <p>Can Manage Categories: {canManageCategories ? 'Yes' : 'No'}</p>
-          <p>Is Admin: {isAdmin ? 'Yes' : 'No'}</p>
-          <p>Is Category Manager: {isCategoryManager ? 'Yes' : 'No'}</p>
-          <p>Categories Count: {categories.length}</p>
+        <h3 className="font-semibold text-blue-800 mb-2">🔍 Debug Information:</h3>
+        <div className="text-sm text-blue-700 space-y-1">
+          <p><strong>User ID:</strong> {user?.id || 'None'}</p>
+          <p><strong>User Email:</strong> {user?.email || 'None'}</p>
+          <p><strong>User Role:</strong> {profile?.role || 'Unknown'}</p>
+          <p><strong>Can Manage Categories:</strong> {canManageCategories ? '✅ Yes' : '❌ No'}</p>
+          <p><strong>Is Admin:</strong> {isAdmin ? '✅ Yes' : '❌ No'}</p>
+          <p><strong>Is Category Manager:</strong> {isCategoryManager ? '✅ Yes' : '❌ No'}</p>
+          <p><strong>Categories Count:</strong> {categories.length}</p>
+          <p><strong>Component:</strong> CategoryManager (Fixed Version)</p>
+          <p><strong>Auth Loading:</strong> {authLoading ? 'Yes' : 'No'}</p>
+          <p><strong>Data Loading:</strong> {loading ? 'Yes' : 'No'}</p>
         </div>
       </div>
 
@@ -251,6 +269,7 @@ const CategoryManagement: React.FC = () => {
                   <div 
                     className="w-4 h-4 rounded-full"
                     style={{ backgroundColor: category.color || '#3B82F6' }}
+                    title={`Color: ${category.color || '#3B82F6'}`}
                   />
                   {category.name}
                 </CardTitle>
@@ -284,10 +303,11 @@ const CategoryManagement: React.FC = () => {
           <p className="text-gray-500 mb-4">Get started by creating your first category.</p>
           <Button
             onClick={() => setDialogOpen(true)}
-            className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+            className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-8 py-3 text-lg font-bold"
+            size="lg"
           >
-            <Plus className="h-4 w-4 mr-2" />
-            Create Your First Category
+            <Plus className="h-5 w-5 mr-2" />
+            CREATE YOUR FIRST CATEGORY
           </Button>
         </div>
       )}
@@ -295,4 +315,4 @@ const CategoryManagement: React.FC = () => {
   );
 };
 
-export { CategoryManagement as default };
+export default CategoryManager;

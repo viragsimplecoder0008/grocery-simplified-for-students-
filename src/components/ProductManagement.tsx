@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useCurrency } from '@/hooks/useCurrency';
+import { formatPrice } from '@/lib/currency';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,7 +15,8 @@ import { Product, Category } from '@/types/grocery';
 import { toast } from 'sonner';
 
 const ProductManagement = () => {
-  const { isAdmin } = useAuth();
+  const { isAdmin, isCategoryManager } = useAuth();
+  const { currency } = useCurrency();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,6 +30,8 @@ const ProductManagement = () => {
     image_url: '',
     stock_quantity: '0'
   });
+
+  const hasPermission = isAdmin || isCategoryManager;
 
   useEffect(() => {
     fetchData();
@@ -144,13 +149,13 @@ const ProductManagement = () => {
     setDialogOpen(true);
   };
 
-  if (!isAdmin) {
+  if (!hasPermission) {
     return (
       <Card>
         <CardContent className="p-6 text-center">
           <ShoppingBag className="w-12 h-12 mx-auto mb-4 text-gray-400" />
           <h3 className="text-lg font-semibold mb-2">Access Restricted</h3>
-          <p className="text-gray-600">You need admin permissions to manage products.</p>
+          <p className="text-gray-600">You need admin or category manager permissions to manage products.</p>
         </CardContent>
       </Card>
     );
@@ -317,7 +322,7 @@ const ProductManagement = () => {
                   <div className="flex items-center gap-4 mt-2">
                     <div className="flex items-center gap-1">
                       <DollarSign className="w-4 h-4 text-green-600" />
-                      <span className="font-semibold text-green-600">${product.price}</span>
+                      <span className="font-semibold text-green-600">{formatPrice(product.price, currency)}</span>
                     </div>
                     {product.category && (
                       <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
