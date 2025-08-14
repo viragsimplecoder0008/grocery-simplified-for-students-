@@ -1,3 +1,12 @@
+export type Currency = 'USD' | 'EUR' | 'INR' | 'GBP';
+
+export interface CurrencyInfo {
+  code: Currency;
+  symbol: string;
+  name: string;
+  exchangeRate: number; // Rate relative to USD
+}
+
 export interface GroceryItem {
   id: string;
   name: string;
@@ -23,6 +32,7 @@ export interface Category {
   id: number;
   name: string;
   description?: string;
+  color?: string;
   created_at: string;
   updated_at: string;
 }
@@ -45,6 +55,7 @@ export interface UserProfile {
   email: string;
   role: 'admin' | 'category_manager' | 'student';
   full_name?: string;
+  currency?: Currency;
   created_at: string;
   updated_at: string;
 }

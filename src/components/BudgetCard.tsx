@@ -1,12 +1,15 @@
 
 import { DollarSign, TrendingUp, ShoppingBag } from "lucide-react";
 import { BudgetSummary } from "@/types/grocery";
+import { useCurrency } from "@/hooks/useCurrency";
+import { formatPrice } from "@/lib/currency";
 
 interface BudgetCardProps {
   budget: BudgetSummary;
 }
 
 const BudgetCard = ({ budget }: BudgetCardProps) => {
+  const { currency } = useCurrency();
   const completionPercentage = budget.totalItems > 0 
     ? Math.round((budget.purchasedItems / budget.totalItems) * 100) 
     : 0;
@@ -28,7 +31,7 @@ const BudgetCard = ({ budget }: BudgetCardProps) => {
             <span className="text-white/80 text-sm">Total Budget</span>
           </div>
           <div className="text-2xl font-bold text-white">
-            ${budget.totalCost.toFixed(2)}
+            {formatPrice(budget.totalCost, currency)}
           </div>
         </div>
 
@@ -38,7 +41,7 @@ const BudgetCard = ({ budget }: BudgetCardProps) => {
             <span className="text-white/80 text-sm">Spent</span>
           </div>
           <div className="text-2xl font-bold text-white">
-            ${budget.purchasedCost.toFixed(2)}
+            {formatPrice(budget.purchasedCost, currency)}
           </div>
         </div>
 
@@ -48,7 +51,7 @@ const BudgetCard = ({ budget }: BudgetCardProps) => {
             <span className="text-white/80 text-sm">Remaining</span>
           </div>
           <div className="text-2xl font-bold text-white">
-            ${budget.remainingCost.toFixed(2)}
+            {formatPrice(budget.remainingCost, currency)}
           </div>
         </div>
       </div>
