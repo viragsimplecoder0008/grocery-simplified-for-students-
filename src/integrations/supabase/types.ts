@@ -14,169 +14,85 @@ export type Database = {
   }
   public: {
     Tables: {
-      addresses: {
-        Row: {
-          address_line1: string
-          address_line2: string | null
-          address_type: Database["public"]["Enums"]["address_type_enum"] | null
-          city: string
-          id: number
-          is_default: boolean | null
-          postal_code: string | null
-          user_id: string | null
-        }
-        Insert: {
-          address_line1: string
-          address_line2?: string | null
-          address_type?: Database["public"]["Enums"]["address_type_enum"] | null
-          city: string
-          id?: number
-          is_default?: boolean | null
-          postal_code?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          address_line1?: string
-          address_line2?: string | null
-          address_type?: Database["public"]["Enums"]["address_type_enum"] | null
-          city?: string
-          id?: number
-          is_default?: boolean | null
-          postal_code?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "addresses_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       categories: {
         Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
           id: number
           name: string
+          updated_at: string
         }
         Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
           id?: number
           name: string
+          updated_at?: string
         }
         Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
           id?: number
           name?: string
+          updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "categories_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
-      favorites: {
+      grocery_lists: {
         Row: {
+          created_at: string
           id: number
+          is_purchased: boolean | null
+          notes: string | null
           product_id: number | null
+          quantity: number
+          updated_at: string
           user_id: string | null
         }
         Insert: {
+          created_at?: string
           id?: number
+          is_purchased?: boolean | null
+          notes?: string | null
           product_id?: number | null
+          quantity?: number
+          updated_at?: string
           user_id?: string | null
         }
         Update: {
+          created_at?: string
           id?: number
+          is_purchased?: boolean | null
+          notes?: string | null
           product_id?: number | null
+          quantity?: number
+          updated_at?: string
           user_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "favorites_product_id_fkey"
+            foreignKeyName: "grocery_lists_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "favorites_user_id_fkey"
+            foreignKeyName: "grocery_lists_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      order_items: {
-        Row: {
-          id: number
-          order_id: number | null
-          product_id: number | null
-          quantity: number | null
-        }
-        Insert: {
-          id?: number
-          order_id?: number | null
-          product_id?: number | null
-          quantity?: number | null
-        }
-        Update: {
-          id?: number
-          order_id?: number | null
-          product_id?: number | null
-          quantity?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "order_items_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "orders"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "order_items_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      orders: {
-        Row: {
-          address_id: number | null
-          created_at: string | null
-          id: number
-          status: Database["public"]["Enums"]["order_status_enum"] | null
-          total_amount: number | null
-          user_id: string | null
-        }
-        Insert: {
-          address_id?: number | null
-          created_at?: string | null
-          id?: number
-          status?: Database["public"]["Enums"]["order_status_enum"] | null
-          total_amount?: number | null
-          user_id?: string | null
-        }
-        Update: {
-          address_id?: number | null
-          created_at?: string | null
-          id?: number
-          status?: Database["public"]["Enums"]["order_status_enum"] | null
-          total_amount?: number | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "orders_address_id_fkey"
-            columns: ["address_id"]
-            isOneToOne: false
-            referencedRelation: "addresses"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "orders_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -184,30 +100,39 @@ export type Database = {
       products: {
         Row: {
           category_id: number | null
+          created_at: string
+          created_by: string | null
           description: string | null
           id: number
           image_url: string | null
           name: string
           price: number
           stock_quantity: number | null
+          updated_at: string
         }
         Insert: {
           category_id?: number | null
+          created_at?: string
+          created_by?: string | null
           description?: string | null
           id?: number
           image_url?: string | null
           name: string
           price: number
           stock_quantity?: number | null
+          updated_at?: string
         }
         Update: {
           category_id?: number | null
+          created_at?: string
+          created_by?: string | null
           description?: string | null
           id?: number
           image_url?: string | null
           name?: string
           price?: number
           stock_quantity?: number | null
+          updated_at?: string
         }
         Relationships: [
           {
@@ -217,44 +142,39 @@ export type Database = {
             referencedRelation: "categories"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "products_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
-      users: {
+      profiles: {
         Row: {
-          address_line1: string
-          address_line2: string | null
-          address_type: Database["public"]["Enums"]["address_type_enum"]
-          city: string
-          created_at: string | null
+          created_at: string
           email: string
-          full_name: string
+          full_name: string | null
           id: string
-          phone_number: string | null
-          postal_code: string
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at: string
         }
         Insert: {
-          address_line1: string
-          address_line2?: string | null
-          address_type: Database["public"]["Enums"]["address_type_enum"]
-          city: string
-          created_at?: string | null
+          created_at?: string
           email: string
-          full_name: string
+          full_name?: string | null
           id: string
-          phone_number?: string | null
-          postal_code: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
         }
         Update: {
-          address_line1?: string
-          address_line2?: string | null
-          address_type?: Database["public"]["Enums"]["address_type_enum"]
-          city?: string
-          created_at?: string | null
+          created_at?: string
           email?: string
-          full_name?: string
+          full_name?: string | null
           id?: string
-          phone_number?: string | null
-          postal_code?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
         }
         Relationships: []
       }
@@ -263,15 +183,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_role: {
+        Args: { user_id: string }
+        Returns: Database["public"]["Enums"]["user_role"]
+      }
     }
     Enums: {
-      address_type_enum: "hostel" | "home"
-      order_status_enum:
-        | "pending"
-        | "out_for_delivery"
-        | "delivered"
-        | "cancelled"
+      user_role: "admin" | "category_manager" | "student"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -399,13 +317,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      address_type_enum: ["hostel", "home"],
-      order_status_enum: [
-        "pending",
-        "out_for_delivery",
-        "delivered",
-        "cancelled",
-      ],
+      user_role: ["admin", "category_manager", "student"],
     },
   },
 } as const
