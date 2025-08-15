@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrency } from '@/hooks/useCurrency';
-import { formatPrice } from '@/lib/currency';
+import { formatPrice, getCurrencySymbol } from '@/lib/currency';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 const ProductManagement = () => {
   const { isAdmin, isCategoryManager } = useAuth();
   const { currency } = useCurrency();
+  const currencySymbol = getCurrencySymbol(currency);
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -208,7 +209,7 @@ const ProductManagement = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="price">Price ($)</Label>
+                  <Label htmlFor="price">Price ({currencySymbol})</Label>
                   <Input
                     id="price"
                     type="number"

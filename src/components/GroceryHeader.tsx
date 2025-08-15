@@ -1,4 +1,4 @@
-import { ShoppingCart, Plus, User, LogOut, Settings } from "lucide-react";
+import { ShoppingCart, Plus, User, LogOut, Settings, Users, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -41,7 +41,10 @@ const GroceryHeader = ({ onAddClick, showAddButton = false }: GroceryHeaderProps
 
   return (
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-      <div className="flex items-center gap-3">
+      <div 
+        className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+        onClick={() => navigate('/')}
+      >
         <div className="grocery-gradient p-3 rounded-xl">
           <ShoppingCart className="w-6 h-6 text-white" />
         </div>
@@ -101,6 +104,21 @@ const GroceryHeader = ({ onAddClick, showAddButton = false }: GroceryHeaderProps
               <DropdownMenuItem onClick={() => navigate('/')}>
                 <ShoppingCart className="w-4 h-4 mr-2" />
                 My Grocery List
+              </DropdownMenuItem>
+              
+              <DropdownMenuItem onClick={() => navigate('/budget')}>
+                <DollarSign className="w-4 h-4 mr-2" />
+                Budget Management
+              </DropdownMenuItem>
+              
+              <DropdownMenuItem onClick={() => navigate('/groups')}>
+                <Users className="w-4 h-4 mr-2" />
+                My Groups
+              </DropdownMenuItem>
+              
+              <DropdownMenuItem onClick={() => navigate('/settings')}>
+                <Settings className="w-4 h-4 mr-2" />
+                Settings
               </DropdownMenuItem>
               
               <DropdownMenuSeparator />

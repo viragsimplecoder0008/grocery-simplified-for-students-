@@ -97,6 +97,217 @@ export type Database = {
           },
         ]
       }
+      groups: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: number
+          is_active: boolean | null
+          join_code: string
+          leader_id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: number
+          is_active?: boolean | null
+          join_code: string
+          leader_id: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: number
+          is_active?: boolean | null
+          join_code?: string
+          leader_id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "groups_leader_id_fkey"
+            columns: ["leader_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      group_memberships: {
+        Row: {
+          group_id: number
+          id: number
+          is_active: boolean | null
+          joined_at: string
+          user_id: string
+        }
+        Insert: {
+          group_id: number
+          id?: number
+          is_active?: boolean | null
+          joined_at?: string
+          user_id: string
+        }
+        Update: {
+          group_id?: number
+          id?: number
+          is_active?: boolean | null
+          joined_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_memberships_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_memberships_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      group_grocery_lists: {
+        Row: {
+          added_by: string
+          category: string | null
+          created_at: string
+          group_id: number
+          id: number
+          is_purchased: boolean | null
+          name: string
+          notes: string | null
+          price: number | null
+          product_id: number | null
+          purchased_at: string | null
+          purchased_by: string | null
+          quantity: number
+          updated_at: string
+        }
+        Insert: {
+          added_by: string
+          category?: string | null
+          created_at?: string
+          group_id: number
+          id?: number
+          is_purchased?: boolean | null
+          name: string
+          notes?: string | null
+          price?: number | null
+          product_id?: number | null
+          purchased_at?: string | null
+          purchased_by?: string | null
+          quantity?: number
+          updated_at?: string
+        }
+        Update: {
+          added_by?: string
+          category?: string | null
+          created_at?: string
+          group_id?: number
+          id?: number
+          is_purchased?: boolean | null
+          name?: string
+          notes?: string | null
+          price?: number | null
+          product_id?: number | null
+          purchased_at?: string | null
+          purchased_by?: string | null
+          quantity?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_grocery_lists_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_grocery_lists_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_grocery_lists_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_grocery_lists_purchased_by_fkey"
+            columns: ["purchased_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      group_notifications: {
+        Row: {
+          created_at: string
+          data: Json | null
+          group_id: number
+          id: number
+          is_read: boolean | null
+          message: string
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data?: Json | null
+          group_id: number
+          id?: number
+          is_read?: boolean | null
+          message: string
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json | null
+          group_id?: number
+          id?: number
+          is_read?: boolean | null
+          message?: string
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_notifications_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       products: {
         Row: {
           category_id: number | null
@@ -189,6 +400,18 @@ export type Database = {
       get_user_role: {
         Args: { user_id: string }
         Returns: Database["public"]["Enums"]["user_role"]
+      }
+      generate_join_code: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      can_join_group: {
+        Args: { user_uuid: string }
+        Returns: boolean
+      }
+      get_user_group_count: {
+        Args: { user_uuid: string }
+        Returns: number
       }
     }
     Enums: {

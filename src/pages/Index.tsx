@@ -1,11 +1,13 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useGroceryList } from "@/hooks/useGroceryList";
 import { useCurrency } from "@/hooks/useCurrency";
 import { formatPrice } from "@/lib/currency";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import GroceryHeader from "@/components/GroceryHeader";
 import BudgetCard from "@/components/BudgetCard";
+import { AIRecommendations } from "@/components/AIRecommendations";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -13,15 +15,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Minus, ShoppingCart, Package, Trash2 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Minus, ShoppingCart, Package, Trash2, User, Sparkles } from "lucide-react";
 import { Product, Category, GroceryListItem, BudgetSummary } from "@/types/grocery";
 
 const Index = () => {
   const { user, profile, loading: authLoading } = useAuth();
   const { currency } = useCurrency();
+  const { 
+    groceryList, 
+    loading: groceryListLoading,
+    addToGroceryList,
+    updateQuantity,
+    togglePurchased,
+    removeFromList 
+  } = useGroceryList();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [groceryList, setGroceryList] = useState<GroceryListItem[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
@@ -51,150 +61,11 @@ const Index = () => {
 
       setCategories(categoriesResult.data || []);
       setProducts(productsResult.data || []);
-
-      // Fetch user's grocery list if authenticated
-      if (user) {
-        const { data: listData, error: listError } = await supabase
-          .from('grocery_lists')
-          .select(`
-            *,
-            product:products(
-              *,
-              category:categories(id, name, description, created_at, updated_at)
-            )
-          `)
-          .eq('user_id', user.id);
-
-        if (listError) throw listError;
-        setGroceryList(listData || []);
-      }
     } catch (error: any) {
       console.error('Error fetching data:', error);
       toast.error('Failed to load data');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const addToGroceryList = async (product: Product, quantity: number = 1) => {
-    if (!user) {
-      toast.error('Please sign in to add items to your list');
-      return;
-    }
-
-    try {
-      // Check if item already exists
-      const existingItem = groceryList.find(item => item.product_id === product.id);
-      
-      if (existingItem) {
-        // Update quantity
-        const { error } = await supabase
-          .from('grocery_lists')
-          .update({ quantity: existingItem.quantity + quantity })
-          .eq('id', existingItem.id);
-
-        if (error) throw error;
-        
-        setGroceryList(prev => prev.map(item => 
-          item.id === existingItem.id 
-            ? { ...item, quantity: item.quantity + quantity }
-            : item
-        ));
-        
-        toast.success(`Updated ${product.name} quantity`);
-      } else {
-        // Add new item
-        const { data, error } = await supabase
-          .from('grocery_lists')
-          .insert({
-            user_id: user.id,
-            product_id: product.id,
-            quantity
-          })
-          .select(`
-            *,
-            product:products(
-              *,
-              category:categories(id, name, description, created_at, updated_at)
-            )
-          `)
-          .single();
-
-        if (error) throw error;
-        
-        setGroceryList(prev => [...prev, data]);
-        toast.success(`Added ${product.name} to your list`);
-      }
-    } catch (error: any) {
-      console.error('Error adding to grocery list:', error);
-      toast.error('Failed to add item to list');
-    }
-  };
-
-  const updateQuantity = async (listItemId: number, newQuantity: number) => {
-    if (newQuantity <= 0) {
-      removeFromList(listItemId);
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('grocery_lists')
-        .update({ quantity: newQuantity })
-        .eq('id', listItemId);
-
-      if (error) throw error;
-
-      setGroceryList(prev => prev.map(item => 
-        item.id === listItemId 
-          ? { ...item, quantity: newQuantity }
-          : item
-      ));
-    } catch (error: any) {
-      console.error('Error updating quantity:', error);
-      toast.error('Failed to update quantity');
-    }
-  };
-
-  const togglePurchased = async (listItemId: number) => {
-    const item = groceryList.find(i => i.id === listItemId);
-    if (!item) return;
-
-    try {
-      const { error } = await supabase
-        .from('grocery_lists')
-        .update({ is_purchased: !item.is_purchased })
-        .eq('id', listItemId);
-
-      if (error) throw error;
-
-      setGroceryList(prev => prev.map(listItem => 
-        listItem.id === listItemId 
-          ? { ...listItem, is_purchased: !listItem.is_purchased }
-          : listItem
-      ));
-
-      toast.success(item.is_purchased ? 'Item unmarked as purchased' : 'Item marked as purchased');
-    } catch (error: any) {
-      console.error('Error toggling purchased:', error);
-      toast.error('Failed to update item');
-    }
-  };
-
-  const removeFromList = async (listItemId: number) => {
-    try {
-      const { error } = await supabase
-        .from('grocery_lists')
-        .delete()
-        .eq('id', listItemId);
-
-      if (error) throw error;
-
-      setGroceryList(prev => prev.filter(item => item.id !== listItemId));
-      toast.success('Item removed from list');
-    } catch (error: any) {
-      console.error('Error removing item:', error);
-      toast.error('Failed to remove item');
     }
   };
 
@@ -262,6 +133,12 @@ const Index = () => {
         />
         
         {user && <BudgetCard budget={budgetSummary} />}
+
+        {user && (
+          <div className="grid grid-cols-1 lg:grid-cols-1 gap-8 mt-8">
+            <AIRecommendations />
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
           {/* Products Section */}

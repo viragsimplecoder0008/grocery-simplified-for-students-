@@ -2,37 +2,58 @@ import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import GroceryHeader from '@/components/GroceryHeader';
-import ProductManagement from '@/components/ProductManagement';
+import BrandManagement from '@/components/BrandManagement';
+import BudgetManagement from '@/components/BudgetManagement';
 import CurrencySelector from '@/components/CurrencySelector';
 
 const AdminPanel = () => {
-  const { user, profile, loading } = useAuth();
+  const { user, profile, loading, isAdmin, isCategoryManager } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    console.log('AdminPanel - Auth state:', { user: !!user, profile, loading }); // Debug log
+    console.log('🔍 AdminPanel - Detailed Auth Debug:', { 
+      user: !!user, 
+      userEmail: user?.email,
+      profile: profile,
+      profileRole: profile?.role,
+      loading, 
+      isAdmin, 
+      isCategoryManager 
+    });
     
     if (!loading) {
       if (!user) {
-        console.log('AdminPanel - No user, redirecting to /auth'); // Debug log
+        console.log('❌ AdminPanel - No user, redirecting to /auth');
         navigate('/auth');
         return;
       }
       
-      // For now, allow any logged-in user to access admin panel for testing
-      // Later we'll enforce proper roles
-      console.log('AdminPanel - User authenticated, allowing access'); // Debug log
+      // Debug: Check why admin access is being denied
+      console.log('🔍 Role Check Details:', {
+        profileExists: !!profile,
+        profileRole: profile?.role,
+        isAdminCheck: profile?.role === 'admin',
+        isCategoryManagerCheck: profile?.role === 'category_manager',
+        finalIsAdmin: isAdmin,
+        finalIsCategoryManager: isCategoryManager
+      });
       
-      // Uncomment these lines once roles are properly set up in Supabase
-      // if (profile?.role !== 'admin' && profile?.role !== 'category_manager') {
-      //   console.log('AdminPanel - Invalid role:', profile?.role, 'redirecting to /'); // Debug log
-      //   navigate('/');
-      //   return;
-      // }
+      // Temporarily allow access if user email is admin - for debugging
+      if (user.email === 'admin@grocerysimplified.com') {
+        console.log('✅ AdminPanel - Allowing access for admin email override');
+        return; // Allow access for debugging
+      }
       
-      console.log('AdminPanel - Access granted for user:', user.email); // Debug log
+      // Enforce proper role-based access control
+      if (!isAdmin && !isCategoryManager) {
+        console.log('❌ AdminPanel - Access denied. User role:', profile?.role, 'isAdmin:', isAdmin, 'isCategoryManager:', isCategoryManager);
+        navigate('/404'); // Redirect to 404 page instead of home to hide admin existence
+        return;
+      }
+      
+      console.log('✅ AdminPanel - Access granted for user:', user.email, 'with role:', profile?.role);
     }
-  }, [user, profile, loading, navigate]);
+  }, [user, profile, loading, navigate, isAdmin, isCategoryManager]);
 
   if (loading) {
     return (
@@ -42,15 +63,10 @@ const AdminPanel = () => {
     );
   }
 
-  // For testing, allow any logged-in user to access admin panel
-  if (!user) {
-    return null;
+  // Block access if user is not authenticated or doesn't have admin/category_manager role
+  if (!user || (!isAdmin && !isCategoryManager)) {
+    return null; // Component will be redirected anyway
   }
-
-  // Uncomment this once roles are properly configured
-  // if (!user || (profile?.role !== 'admin' && profile?.role !== 'category_manager')) {
-  //   return null;
-  // }
 
   return (
     <div className="min-h-screen page-gradient">
@@ -84,9 +100,16 @@ const AdminPanel = () => {
         {/* Admin Features */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="space-y-6">
-            <ProductManagement />
+            <BrandManagement />
           </div>
           
+          <div className="space-y-6">
+            <BudgetManagement />
+          </div>
+        </div>
+
+        {/* Additional Admin Tools */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
           {/* Currency Management Section */}
           <div className="space-y-6">
             <CurrencySelector />
@@ -133,12 +156,12 @@ const AdminPanel = () => {
                     <div className="flex items-center gap-3">
                       <div className="bg-amber-500 p-2 rounded-lg">
                         <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                         </svg>
                       </div>
                       <div>
-                        <h3 className="font-semibold text-gray-900">Full Admin Access</h3>
-                        <p className="text-sm text-gray-600">You have complete system access</p>
+                        <h3 className="font-semibold text-gray-900">Brand System Active</h3>
+                        <p className="text-sm text-gray-600">Brands can now manage their products</p>
                       </div>
                     </div>
                   </div>

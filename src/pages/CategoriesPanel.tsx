@@ -5,7 +5,7 @@ import GroceryHeader from '@/components/GroceryHeader';
 import CategoryManager from '@/components/CategoryManager';
 
 const CategoriesPanel = () => {
-  const { user, profile, loading } = useAuth();
+  const { user, profile, loading, isAdmin, isCategoryManager } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -16,12 +16,12 @@ const CategoriesPanel = () => {
       }
       
       // Allow both admins and category managers to access this page
-      if (profile?.role !== 'category_manager' && profile?.role !== 'admin') {
-        navigate('/');
+      if (!isAdmin && !isCategoryManager) {
+        navigate('/404'); // Redirect to 404 to hide existence from unauthorized users
         return;
       }
     }
-  }, [user, profile, loading, navigate]);
+  }, [user, profile, loading, navigate, isAdmin, isCategoryManager]);
 
   if (loading) {
     return (
@@ -31,7 +31,7 @@ const CategoriesPanel = () => {
     );
   }
 
-  if (!user || (profile?.role !== 'category_manager' && profile?.role !== 'admin')) {
+  if (!user || (!isAdmin && !isCategoryManager)) {
     return null;
   }
 

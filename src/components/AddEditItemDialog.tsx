@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { GroceryItem, GroceryCategory } from "@/types/grocery";
+import { useCurrency } from "@/hooks/useCurrency";
+import { getCurrencySymbol } from "@/lib/currency";
 
 interface AddEditItemDialogProps {
   open: boolean;
@@ -15,6 +17,9 @@ interface AddEditItemDialogProps {
 }
 
 const AddEditItemDialog = ({ open, onClose, onSave, editingItem }: AddEditItemDialogProps) => {
+  const { currency } = useCurrency();
+  const currencySymbol = getCurrencySymbol(currency);
+  
   const [formData, setFormData] = useState({
     name: '',
     quantity: 1,
@@ -95,7 +100,7 @@ const AddEditItemDialog = ({ open, onClose, onSave, editingItem }: AddEditItemDi
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="price">Price ($)</Label>
+              <Label htmlFor="price">Price ({currencySymbol})</Label>
               <Input
                 id="price"
                 type="number"

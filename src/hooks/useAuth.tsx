@@ -11,6 +11,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, fullName?: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
+  updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
   isAdmin: boolean;
   isCategoryManager: boolean;
   isStudent: boolean;
@@ -60,6 +61,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUserProfile = async (userId: string) => {
     try {
+      console.log('🔍 Fetching profile for userId:', userId);
+      
+      // First try localStorage fallback
+      const localProfile = localStorage.getItem(`profile_${userId}`);
+      if (localProfile) {
+        try {
+          const parsedProfile = JSON.parse(localProfile);
+          console.log('✅ Profile loaded from localStorage:', parsedProfile);
+          setProfile(parsedProfile);
+          return;
+        } catch (e) {
+          console.warn('Failed to parse localStorage profile, trying database...');
+        }
+      }
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -67,13 +83,75 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .maybeSingle();
 
       if (error) {
-        console.error('Error fetching profile:', error);
+        console.error('❌ Error fetching profile:', error);
+        
+        // Create a basic profile if database fails
+        const basicProfile: UserProfile = {
+          id: userId,
+          full_name: null,
+          email: '',
+          role: 'student',
+          currency: 'USD',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          birth_day: null,
+          birth_month: null,
+          favorite_cake: null,
+          favorite_snacks: null,
+          hobbies: null
+        };
+        setProfile(basicProfile);
         return;
       }
 
-      setProfile(data);
+      console.log('✅ Profile fetched successfully:', data);
+      if (data) {
+        setProfile(data as UserProfile);
+        // Also save to localStorage for future offline use
+        localStorage.setItem(`profile_${userId}`, JSON.stringify(data));
+      }
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error('❌ Exception in fetchUserProfile:', error);
+    }
+  };
+
+  const updateProfile = async (updates: Partial<UserProfile>) => {
+    if (!user?.id || !profile) {
+      throw new Error('No user or profile found');
+    }
+
+    try {
+      const updatedProfile: UserProfile = {
+        ...profile,
+        ...updates,
+        updated_at: new Date().toISOString()
+      };
+
+      // Always save to localStorage first
+      localStorage.setItem(`profile_${user.id}`, JSON.stringify(updatedProfile));
+      
+      // Update local state immediately
+      setProfile(updatedProfile);
+
+      // Try to update database (but don't fail if it doesn't work)
+      try {
+        const { error } = await supabase
+          .from('profiles')
+          .update(updates)
+          .eq('id', user.id);
+
+        if (error) {
+          console.warn('Database update failed, but localStorage updated:', error);
+        } else {
+          console.log('✅ Profile updated in both localStorage and database');
+        }
+      } catch (dbError) {
+        console.warn('Database unavailable, using localStorage only:', dbError);
+      }
+      
+    } catch (error) {
+      console.error('❌ Failed to update profile:', error);
+      throw error;
     }
   };
 
@@ -140,6 +218,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isCategoryManager = profile?.role === 'category_manager';
   const isStudent = profile?.role === 'student';
 
+  // Debug logging for role calculations
+  if (profile) {
+    console.log('🔍 Role calculation debug:', {
+      profileRole: profile.role,
+      isAdmin,
+      isCategoryManager,
+      isStudent,
+      roleType: typeof profile.role,
+    });
+  }
+
   const value = {
     user,
     session,
@@ -148,6 +237,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signIn,
     signUp,
     signOut,
+    updateProfile,
     isAdmin,
     isCategoryManager,
     isStudent,
