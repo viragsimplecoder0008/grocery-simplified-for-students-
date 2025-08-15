@@ -26,75 +26,70 @@ export const AIRecommendations = () => {
     setError("");
 
     try {
-      // Try to call the Python API service first
-      let response;
-      let data;
+      // For deployment, we'll use the fallback system instead of requiring Python API
+      console.log("Getting AI recommendations with fallback system...");
       
-      try {
-        response = await fetch('http://localhost:5000/api/gemini-recommendations', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_profile: profile })
-        });
+      // Fallback to mock response - this provides great UX without requiring Python server
+      const calculateDaysUntilBirthday = (birthDay: number, birthMonth: number) => {
+        const today = new Date();
+        const currentYear = today.getFullYear();
+        let birthday = new Date(currentYear, birthMonth - 1, birthDay);
         
-        if (response.ok) {
-          data = await response.json();
-        } else {
-          throw new Error(`API responded with status: ${response.status}`);
+        if (birthday < today) {
+          birthday = new Date(currentYear + 1, birthMonth - 1, birthDay);
         }
-      } catch (apiError) {
-        console.warn("Python API not available, using fallback:", apiError);
         
-        // Fallback to mock response if API is not available
-        const calculateDaysUntilBirthday = (birthDay: number, birthMonth: number) => {
-          const today = new Date();
-          const currentYear = today.getFullYear();
-          let birthday = new Date(currentYear, birthMonth - 1, birthDay);
-          
-          if (birthday < today) {
-            birthday = new Date(currentYear + 1, birthMonth - 1, birthDay);
-          }
-          
-          return Math.ceil((birthday.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-        };
+        return Math.ceil((birthday.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      };
 
-        const daysUntil = calculateDaysUntilBirthday(profile.birth_day, profile.birth_month);
-        
-        data = {
-          success: true,
-          recommendations: [
-            {
-              product_name: "Birthday Cake Mix",
-              reason: daysUntil <= 30 ? "Your birthday is coming up soon! Perfect for celebrating." : "Get ready for your upcoming birthday celebration!",
-              category: "birthday",
-              confidence_score: daysUntil <= 7 ? 0.95 : 0.8
-            },
-            {
-              product_name: "Seasonal Fruits",
-              reason: "Fresh seasonal produce for the current time of year.",
-              category: "seasonal",
-              confidence_score: 0.8
-            },
-            ...(profile.favorite_cake ? [{
-              product_name: profile.favorite_cake,
-              reason: `Based on your favorite cake preference: ${profile.favorite_cake}`,
-              category: "preference" as const,
-              confidence_score: 0.85
-            }] : []),
-            ...(profile.favorite_snacks ? [{
-              product_name: profile.favorite_snacks.split(',')[0].trim(),
-              reason: `One of your favorite snacks: ${profile.favorite_snacks.split(',')[0].trim()}`,
-              category: "preference" as const,
-              confidence_score: 0.8
-            }] : [])
-          ],
-          birthday_message: daysUntil <= 7 ? `🎉 Your birthday is in just ${daysUntil} days!` : 
-                           daysUntil <= 30 ? `Your birthday is in ${daysUntil} days! 🎂` :
-                           `Your birthday is in ${daysUntil} days.`,
-          seasonal_note: "Perfect time for seasonal shopping based on current month!",
-          days_until_birthday: daysUntil
-        };
-      }
+      const daysUntil = calculateDaysUntilBirthday(profile.birth_day, profile.birth_month);
+      
+      const data = {
+        success: true,
+        recommendations: [
+          {
+            product_name: "Birthday Cake Mix",
+            reason: daysUntil <= 30 ? "Your birthday is coming up soon! Perfect for celebrating." : "Get ready for your upcoming birthday celebration!",
+            category: "birthday" as const,
+            confidence_score: daysUntil <= 7 ? 0.95 : 0.8
+          },
+          {
+            product_name: "Seasonal Fruits",
+            reason: "Fresh seasonal produce for the current time of year.",
+            category: "seasonal" as const,
+            confidence_score: 0.8
+          },
+          {
+            product_name: "Greek Yogurt",
+            reason: "High protein snack perfect for students' busy lifestyle.",
+            category: "preference" as const,
+            confidence_score: 0.85
+          },
+          ...(profile.favorite_cake ? [{
+            product_name: profile.favorite_cake,
+            reason: `Based on your favorite cake preference: ${profile.favorite_cake}`,
+            category: "preference" as const,
+            confidence_score: 0.85
+          }] : []),
+          ...(profile.favorite_snacks ? [{
+            product_name: profile.favorite_snacks.split(',')[0].trim(),
+            reason: `One of your favorite snacks: ${profile.favorite_snacks.split(',')[0].trim()}`,
+            category: "preference" as const,
+            confidence_score: 0.8
+          }] : []),
+          ...(profile.hobbies ? [{
+            product_name: "Energy Bars",
+            reason: `Perfect snack for your hobbies: ${profile.hobbies}`,
+            category: "hobby" as const,
+            confidence_score: 0.75
+          }] : [])
+        ],
+        birthday_message: daysUntil <= 7 ? `🎉 Your birthday is in just ${daysUntil} days!` : 
+                         daysUntil <= 30 ? `Your birthday is in ${daysUntil} days! 🎂` :
+                         `Your birthday is in ${daysUntil} days.`,
+        seasonal_note: "Perfect time for seasonal shopping based on current month!",
+        days_until_birthday: daysUntil
+      };
 
       if (data.success) {
         setRecommendations(data.recommendations);
@@ -102,7 +97,7 @@ export const AIRecommendations = () => {
         setSeasonalNote(data.seasonal_note || "");
         setDaysUntilBirthday(data.days_until_birthday);
       } else {
-        setError(data.error || "Failed to get recommendations");
+        setError("Failed to get recommendations");
       }
     } catch (err) {
       console.error("Error getting recommendations:", err);
@@ -163,8 +158,11 @@ export const AIRecommendations = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-purple-500" />
-          AI Recommendations
+          Smart Recommendations
         </CardTitle>
+        <p className="text-sm text-gray-600">
+          Personalized suggestions based on your profile and preferences
+        </p>
       </CardHeader>
       <CardContent className="space-y-4">
         {birthdayMessage && (

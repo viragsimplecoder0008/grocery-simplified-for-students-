@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import GroceryHeader from "@/components/GroceryHeader";
 import BudgetCard from "@/components/BudgetCard";
 import { AIRecommendations } from "@/components/AIRecommendations";
+import BackendTest from "@/components/BackendTest"; // TEMPORARY: for testing
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -134,6 +135,32 @@ const Index = () => {
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-white">Loading your dashboard...</p>
+          <button 
+            onClick={() => setLoading(false)}
+            className="mt-4 px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-colors"
+          >
+            Continue without loading
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // If no user and not loading, show minimal guest interface
+  if (!user && !loading) {
+    return (
+      <div className="min-h-screen page-gradient">
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center text-white">
+            <h1 className="text-4xl font-bold mb-4">🛒 Grocery Simplified</h1>
+            <p className="text-xl mb-8">Smart Shopping & Budget Tracking for Students</p>
+            <button
+              onClick={() => navigate('/auth')}
+              className="px-6 py-3 bg-white text-blue-600 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+            >
+              Get Started
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -160,7 +187,7 @@ const Index = () => {
           </div>
 
           <Tabs defaultValue="groups" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="groups" className="flex items-center gap-2">
                 <Users className="w-4 h-4" />
                 Your Groups
@@ -172,6 +199,9 @@ const Index = () => {
               <TabsTrigger value="recommendations" className="flex items-center gap-2">
                 <ShoppingCart className="w-4 h-4" />
                 AI Suggestions
+              </TabsTrigger>
+              <TabsTrigger value="backend-test" className="flex items-center gap-2">
+                🧪 Backend Test
               </TabsTrigger>
             </TabsList>
 
@@ -455,6 +485,10 @@ const Index = () => {
 
           <TabsContent value="recommendations">
             <AIRecommendations />
+          </TabsContent>
+
+          <TabsContent value="backend-test">
+            <BackendTest />
           </TabsContent>
         </Tabs>
       </div>

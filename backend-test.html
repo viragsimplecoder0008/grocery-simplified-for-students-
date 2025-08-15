@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backend API Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Backend API Test Suite</h1>
+    <p>This page tests the Node.js backend API endpoints to ensure they're working correctly.</p>
+
+    <div id="results"></div>
+
+    <div class="test-section info">
+        <h3>Available Tests</h3>
+        <button onclick="testHealth()">🔍 Test Health Endpoint</button>
+        <button onclick="testCORS()">🌐 Test CORS Headers</button>
+        <button onclick="testAuthEndpoint()">🔐 Test Auth Endpoint (without token)</button>
+        <button onclick="testGroupsEndpoint()">👥 Test Groups Endpoint (without token)</button>
+        <button onclick="runAllTests()">🚀 Run All Tests</button>
+        <button onclick="clearResults()">🗑️ Clear Results</button>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3001/api';
+        const resultsDiv = document.getElementById('results');
+
+        function addResult(title, status, message, data = null) {
+            const div = document.createElement('div');
+            div.className = `test-section ${status}`;
+            div.innerHTML = `
+                <h3>${title}</h3>
+                <p><strong>Status:</strong> ${status.toUpperCase()}</p>
+                <p><strong>Message:</strong> ${message}</p>
+                ${data ? `<pre><strong>Response Data:</strong>\n${JSON.stringify(data, null, 2)}</pre>` : ''}
+                <small><strong>Time:</strong> ${new Date().toLocaleTimeString()}</small>
+            `;
+            resultsDiv.appendChild(div);
+            resultsDiv.scrollTop = resultsDiv.scrollHeight;
+        }
+
+        async function testHealth() {
+            try {
+                const response = await fetch('http://localhost:3001/health');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    addResult('🔍 Health Check', 'success', 'Backend is running correctly!', data);
+                } else {
+                    addResult('🔍 Health Check', 'error', `HTTP ${response.status}: ${response.statusText}`, data);
+                }
+            } catch (error) {
+                addResult('🔍 Health Check', 'error', `Failed to connect: ${error.message}`);
+            }
+        }
+
+        async function testCORS() {
+            try {
+                const response = await fetch('http://localhost:3001/health', {
+                    method: 'GET',
+                    headers: {
+                        'Origin': 'http://localhost:5173',
+                        'Access-Control-Request-Method': 'GET'
+                    }
+                });
+                
+                const corsHeader = response.headers.get('Access-Control-Allow-Origin');
+                
+                if (corsHeader) {
+                    addResult('🌐 CORS Test', 'success', `CORS is configured. Allow-Origin: ${corsHeader}`);
+                } else {
+                    addResult('🌐 CORS Test', 'error', 'CORS headers not found');
+                }
+            } catch (error) {
+                addResult('🌐 CORS Test', 'error', `CORS test failed: ${error.message}`);
+            }
+        }
+
+        async function testAuthEndpoint() {
+            try {
+                const response = await fetch(`${API_BASE}/auth/me`);
+                const data = await response.json();
+                
+                if (response.status === 401) {
+                    addResult('🔐 Auth Test', 'success', 'Auth endpoint correctly requires authentication', data);
+                } else {
+                    addResult('🔐 Auth Test', 'info', `Unexpected response: ${response.status}`, data);
+                }
+            } catch (error) {
+                addResult('🔐 Auth Test', 'error', `Auth test failed: ${error.message}`);
+            }
+        }
+
+        async function testGroupsEndpoint() {
+            try {
+                const response = await fetch(`${API_BASE}/groups`);
+                const data = await response.json();
+                
+                if (response.status === 401) {
+                    addResult('👥 Groups Test', 'success', 'Groups endpoint correctly requires authentication', data);
+                } else {
+                    addResult('👥 Groups Test', 'info', `Unexpected response: ${response.status}`, data);
+                }
+            } catch (error) {
+                addResult('👥 Groups Test', 'error', `Groups test failed: ${error.message}`);
+            }
+        }
+
+        async function runAllTests() {
+            clearResults();
+            addResult('🚀 Test Suite', 'info', 'Running all tests...');
+            
+            await testHealth();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testCORS();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testAuthEndpoint();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testGroupsEndpoint();
+            
+            addResult('✅ Test Suite Complete', 'success', 'All tests completed!');
+        }
+
+        function clearResults() {
+            resultsDiv.innerHTML = '';
+        }
+
+        // Auto-run health check on page load
+        window.onload = () => {
+            addResult('🎯 Auto Test', 'info', 'Page loaded. Backend should be running on port 3001');
+            setTimeout(testHealth, 1000);
+        };
+    </script>
+</body>
+</html>

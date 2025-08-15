@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 export function useGroups() {
   const { user } = useAuth();
   const [userGroups, setUserGroups] = useState<Group[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Start with false to prevent blocking UI
   const [notifications, setNotifications] = useState<GroupNotification[]>([]);
 
   // Fetch user's groups (with fallback support)

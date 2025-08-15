@@ -424,9 +424,19 @@ export function GroupManagement() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Dialog open={createFormOpen} onOpenChange={setCreateFormOpen}>
+                <Dialog open={createFormOpen} onOpenChange={(open) => {
+                  console.log('Dialog state changing to:', open);
+                  setCreateFormOpen(open);
+                }}>
                   <DialogTrigger asChild>
-                    <Button className="w-full" disabled={userGroups.length >= 3}>
+                    <Button 
+                      className="w-full" 
+                      disabled={userGroups.length >= 3}
+                      onClick={() => {
+                        console.log('Create Group button clicked');
+                        setCreateFormOpen(true);
+                      }}
+                    >
                       <Plus className="w-4 h-4 mr-2" />
                       {userGroups.length >= 3 ? 'Group Limit Reached' : 'Create Group'}
                     </Button>

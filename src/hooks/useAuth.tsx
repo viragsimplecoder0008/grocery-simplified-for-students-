@@ -24,28 +24,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Start with false, set to true only during auth operations
 
   useEffect(() => {
     let isCancelled = false;
-    let loadingTimeout: NodeJS.Timeout;
-
+    
     const setupAuth = async () => {
       try {
-        // Add a failsafe timeout - if auth doesn't load in 15 seconds, show the app anyway
-        loadingTimeout = setTimeout(() => {
+        console.log('🔧 Setting up auth...');
+        setLoading(true); // Only set loading true when we start auth setup
+        
+        // Add a more aggressive failsafe timeout - if auth doesn't resolve in 6 seconds, continue
+        const loadingTimeout = setTimeout(() => {
           if (!isCancelled) {
             console.warn('Auth loading timeout - continuing without authentication');
             setLoading(false);
           }
-        }, 15000);
+        }, 6000);
 
         // Set up auth state listener FIRST
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           (event, session) => {
             if (isCancelled) return;
             
-            console.log('Auth state change:', event, session?.user?.id);
+            console.log('🔄 Auth state change:', event, session?.user?.id);
             setSession(session);
             setUser(session?.user ?? null);
             
@@ -55,23 +57,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 if (!isCancelled) {
                   fetchUserProfile(session.user.id);
                 }
-              }, 0);
+              }, 100);
             } else {
               setProfile(null);
             }
             
-            if (loadingTimeout) clearTimeout(loadingTimeout);
+            clearTimeout(loadingTimeout);
             setLoading(false);
           }
         );
 
-        // THEN check for existing session
+        // Check for existing session with shorter timeout
+        const sessionTimeout = setTimeout(() => {
+          if (!isCancelled) {
+            console.warn('Session check timeout - continuing');
+            clearTimeout(loadingTimeout);
+            setLoading(false);
+          }
+        }, 3000);
+
         try {
           const { data: { session }, error } = await supabase.auth.getSession();
+          clearTimeout(sessionTimeout);
+          
           if (!isCancelled) {
             if (error) {
               console.warn('Error getting session:', error);
-              // Continue without session
             }
             
             setSession(session);
@@ -80,13 +91,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (session?.user) {
               fetchUserProfile(session.user.id);
             }
-            if (loadingTimeout) clearTimeout(loadingTimeout);
+            clearTimeout(loadingTimeout);
             setLoading(false);
           }
         } catch (sessionError) {
+          clearTimeout(sessionTimeout);
           console.warn('Failed to get session, continuing with guest access:', sessionError);
           if (!isCancelled) {
-            if (loadingTimeout) clearTimeout(loadingTimeout);
+            clearTimeout(loadingTimeout);
             setLoading(false);
           }
         }
@@ -97,8 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (setupError) {
         console.error('Auth setup failed:', setupError);
         if (!isCancelled) {
-          if (loadingTimeout) clearTimeout(loadingTimeout);
-          setLoading(false); // Continue without auth
+          setLoading(false);
         }
       }
     };
@@ -107,7 +118,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       isCancelled = true;
-      if (loadingTimeout) clearTimeout(loadingTimeout);
     };
   }, []);
 
@@ -128,15 +138,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
       
-      const { data, error } = await supabase
+      // Try database with timeout
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Database timeout')), 3000);
+      });
+      
+      const dbPromise = supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .maybeSingle();
-
-      if (error) {
-        console.error('❌ Error fetching profile:', error);
+      
+      try {
+        const { data, error } = await Promise.race([dbPromise, timeoutPromise]) as any;
         
+        if (error) {
+          console.error('❌ Error fetching profile:', error);
+          throw error;
+        }
+
+        console.log('✅ Profile fetched successfully:', data);
+        if (data) {
+          setProfile(data as UserProfile);
+          // Also save to localStorage for future offline use
+          localStorage.setItem(`profile_${userId}`, JSON.stringify(data));
+        }
+      } catch (dbError) {
+        console.warn('Database query failed or timed out:', dbError);
         // Create a basic profile if database fails
         const basicProfile: UserProfile = {
           id: userId,
@@ -153,17 +181,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           hobbies: null
         };
         setProfile(basicProfile);
-        return;
+        localStorage.setItem(`profile_${userId}`, JSON.stringify(basicProfile));
       }
-
-      console.log('✅ Profile fetched successfully:', data);
-      if (data) {
-        setProfile(data as UserProfile);
-        // Also save to localStorage for future offline use
-        localStorage.setItem(`profile_${userId}`, JSON.stringify(data));
-      }
+      
     } catch (error) {
       console.error('❌ Exception in fetchUserProfile:', error);
+      // Always create a basic profile to prevent loading loops
+      const basicProfile: UserProfile = {
+        id: userId,
+        full_name: null,
+        email: '',
+        role: 'student',
+        currency: 'USD',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        birth_day: null,
+        birth_month: null,
+        favorite_cake: null,
+        favorite_snacks: null,
+        hobbies: null
+      };
+      setProfile(basicProfile);
     }
   };
 
