@@ -58,8 +58,8 @@ A modern, collaborative grocery list application with AI-powered recommendations
 
 1. **Clone the repository**
    ```bash
-   git clone [repository-url]
-   cd grocery-simplified-for-students
+   git clone https://github.com/viragsimplecoder0008/grocery-simplified-for-students-
+   cd grocery-simplified-for-students-
    ```
 
 2. **Run the setup script**
