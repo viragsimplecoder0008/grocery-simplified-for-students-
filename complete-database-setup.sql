@@ -601,56 +601,7 @@ CREATE INDEX IF NOT EXISTS idx_bill_splits_user_id ON public.bill_splits(user_id
 CREATE INDEX IF NOT EXISTS idx_bill_splits_status ON public.bill_splits(status);
 CREATE INDEX IF NOT EXISTS idx_split_bill_transactions_bill_split_id ON public.split_bill_transactions(bill_split_id);
 
--- 12. Insert sample data (safe to run multiple times)
-INSERT INTO public.categories (name, description, color, created_by)
-SELECT 'Fruits & Vegetables', 'Fresh produce including fruits and vegetables', '#22c55e', 
-       (SELECT id FROM public.profiles WHERE email = 'admin@grocerysimplified.com' LIMIT 1)
-WHERE NOT EXISTS (SELECT 1 FROM public.categories WHERE name = 'Fruits & Vegetables');
-
-INSERT INTO public.categories (name, description, color, created_by)
-SELECT 'Dairy & Eggs', 'Milk, cheese, yogurt, and eggs', '#3b82f6',
-       (SELECT id FROM public.profiles WHERE email = 'admin@grocerysimplified.com' LIMIT 1)
-WHERE NOT EXISTS (SELECT 1 FROM public.categories WHERE name = 'Dairy & Eggs');
-
-INSERT INTO public.categories (name, description, color, created_by)
-SELECT 'Meat & Seafood', 'Fresh meat, poultry, and seafood', '#ef4444',
-       (SELECT id FROM public.profiles WHERE email = 'admin@grocerysimplified.com' LIMIT 1)
-WHERE NOT EXISTS (SELECT 1 FROM public.categories WHERE name = 'Meat & Seafood');
-
-INSERT INTO public.categories (name, description, color, created_by)
-SELECT 'Pantry Staples', 'Rice, pasta, canned goods, and spices', '#f59e0b',
-       (SELECT id FROM public.profiles WHERE email = 'admin@grocerysimplified.com' LIMIT 1)
-WHERE NOT EXISTS (SELECT 1 FROM public.categories WHERE name = 'Pantry Staples');
-
-INSERT INTO public.categories (name, description, color, created_by)
-SELECT 'Beverages', 'Juices, water, tea, and coffee', '#8b5cf6',
-       (SELECT id FROM public.profiles WHERE email = 'admin@grocerysimplified.com' LIMIT 1)
-WHERE NOT EXISTS (SELECT 1 FROM public.categories WHERE name = 'Beverages');
-
--- Insert sample products
-INSERT INTO public.products (name, category_id, price, unit, nutritional_info, created_by)
-SELECT 'Organic Apples', 
-       (SELECT id FROM public.categories WHERE name = 'Fruits & Vegetables' LIMIT 1), 
-       2.99, 'per lb', 
-       '{"calories": 52, "fiber": "2.4g", "vitamin_c": "14% DV"}'::jsonb,
-       (SELECT id FROM public.profiles WHERE email = 'admin@grocerysimplified.com' LIMIT 1)
-WHERE NOT EXISTS (SELECT 1 FROM public.products WHERE name = 'Organic Apples');
-
-INSERT INTO public.products (name, category_id, price, unit, nutritional_info, created_by)
-SELECT 'Fresh Spinach', 
-       (SELECT id FROM public.categories WHERE name = 'Fruits & Vegetables' LIMIT 1), 
-       1.99, 'per bunch', 
-       '{"calories": 7, "iron": "15% DV", "vitamin_k": "181% DV"}'::jsonb,
-       (SELECT id FROM public.profiles WHERE email = 'admin@grocerysimplified.com' LIMIT 1)
-WHERE NOT EXISTS (SELECT 1 FROM public.products WHERE name = 'Fresh Spinach');
-
-INSERT INTO public.products (name, category_id, price, unit, nutritional_info, created_by)
-SELECT 'Whole Milk', 
-       (SELECT id FROM public.categories WHERE name = 'Dairy & Eggs' LIMIT 1), 
-       3.49, 'per gallon', 
-       '{"calories": 150, "protein": "8g", "calcium": "30% DV"}'::jsonb,
-       (SELECT id FROM public.profiles WHERE email = 'admin@grocerysimplified.com' LIMIT 1)
-WHERE NOT EXISTS (SELECT 1 FROM public.products WHERE name = 'Whole Milk');
+-- 12. Database setup complete - ready for admin to add real categories and products
 
 -- Success message
 DO $$ 

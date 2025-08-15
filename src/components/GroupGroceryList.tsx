@@ -77,14 +77,8 @@ export function GroupGroceryList() {
             error.message?.includes('schema cache') ||
             error.code === 'PGRST106') {
           console.warn('Products table not available, using fallback');
-          // For demo purposes, create some sample products
-          const sampleProducts: Product[] = [
-            { id: 1, name: 'Milk', price: 3.50, category_id: 1, stock_quantity: 50, description: 'Fresh whole milk', created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-            { id: 2, name: 'Bread', price: 2.25, category_id: 2, stock_quantity: 30, description: 'Whole wheat bread', created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-            { id: 3, name: 'Eggs', price: 4.00, category_id: 1, stock_quantity: 25, description: 'Free-range eggs (12 pack)', created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-            { id: 4, name: 'Bananas', price: 1.50, category_id: 3, stock_quantity: 100, description: 'Fresh bananas per lb', created_at: new Date().toISOString(), updated_at: new Date().toISOString() }
-          ];
-          setProducts(sampleProducts);
+          // No products available in fallback mode - admin needs to add real products
+          setProducts([]);
           return;
         }
         throw error;

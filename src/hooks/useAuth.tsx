@@ -15,6 +15,7 @@ interface AuthContextType {
   isAdmin: boolean;
   isCategoryManager: boolean;
   isStudent: boolean;
+  isBrand: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -26,37 +27,88 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          // Defer profile fetching to prevent deadlocks
-          setTimeout(() => {
-            fetchUserProfile(session.user.id);
-          }, 0);
-        } else {
-          setProfile(null);
+    let isCancelled = false;
+    let loadingTimeout: NodeJS.Timeout;
+
+    const setupAuth = async () => {
+      try {
+        // Add a failsafe timeout - if auth doesn't load in 15 seconds, show the app anyway
+        loadingTimeout = setTimeout(() => {
+          if (!isCancelled) {
+            console.warn('Auth loading timeout - continuing without authentication');
+            setLoading(false);
+          }
+        }, 15000);
+
+        // Set up auth state listener FIRST
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          (event, session) => {
+            if (isCancelled) return;
+            
+            console.log('Auth state change:', event, session?.user?.id);
+            setSession(session);
+            setUser(session?.user ?? null);
+            
+            if (session?.user) {
+              // Defer profile fetching to prevent deadlocks
+              setTimeout(() => {
+                if (!isCancelled) {
+                  fetchUserProfile(session.user.id);
+                }
+              }, 0);
+            } else {
+              setProfile(null);
+            }
+            
+            if (loadingTimeout) clearTimeout(loadingTimeout);
+            setLoading(false);
+          }
+        );
+
+        // THEN check for existing session
+        try {
+          const { data: { session }, error } = await supabase.auth.getSession();
+          if (!isCancelled) {
+            if (error) {
+              console.warn('Error getting session:', error);
+              // Continue without session
+            }
+            
+            setSession(session);
+            setUser(session?.user ?? null);
+            
+            if (session?.user) {
+              fetchUserProfile(session.user.id);
+            }
+            if (loadingTimeout) clearTimeout(loadingTimeout);
+            setLoading(false);
+          }
+        } catch (sessionError) {
+          console.warn('Failed to get session, continuing with guest access:', sessionError);
+          if (!isCancelled) {
+            if (loadingTimeout) clearTimeout(loadingTimeout);
+            setLoading(false);
+          }
         }
-        
-        setLoading(false);
-      }
-    );
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        fetchUserProfile(session.user.id);
+        return () => {
+          subscription.unsubscribe();
+        };
+      } catch (setupError) {
+        console.error('Auth setup failed:', setupError);
+        if (!isCancelled) {
+          if (loadingTimeout) clearTimeout(loadingTimeout);
+          setLoading(false); // Continue without auth
+        }
       }
-      setLoading(false);
-    });
+    };
 
-    return () => subscription.unsubscribe();
+    setupAuth();
+
+    return () => {
+      isCancelled = true;
+      if (loadingTimeout) clearTimeout(loadingTimeout);
+    };
   }, []);
 
   const fetchUserProfile = async (userId: string) => {
@@ -135,9 +187,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Try to update database (but don't fail if it doesn't work)
       try {
+        // Create update object with only the fields that exist in the database
+        const dbUpdates: any = {};
+        if (updates.full_name !== undefined) dbUpdates.full_name = updates.full_name;
+        if (updates.email !== undefined) dbUpdates.email = updates.email;
+        if (updates.currency !== undefined) dbUpdates.currency = updates.currency;
+        if (updates.role && ['admin', 'category_manager', 'student'].includes(updates.role)) {
+          dbUpdates.role = updates.role;
+        }
+        
         const { error } = await supabase
           .from('profiles')
-          .update(updates)
+          .update(dbUpdates)
           .eq('id', user.id);
 
         if (error) {
@@ -217,6 +278,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isAdmin = profile?.role === 'admin';
   const isCategoryManager = profile?.role === 'category_manager';
   const isStudent = profile?.role === 'student';
+  const isBrand = profile?.role === 'brand';
 
   // Debug logging for role calculations
   if (profile) {
@@ -225,6 +287,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAdmin,
       isCategoryManager,
       isStudent,
+      isBrand,
       roleType: typeof profile.role,
     });
   }
@@ -241,6 +304,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAdmin,
     isCategoryManager,
     isStudent,
+    isBrand,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

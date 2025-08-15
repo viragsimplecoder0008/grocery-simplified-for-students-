@@ -29,7 +29,8 @@ export const SplitBill = ({ groupId, orders }: SplitBillProps) => {
   const fetchBillSummaries = async () => {
     setLoading(true);
     try {
-      // In a real app, this would be an API call
+      // In a real app, this would fetch actual group members and their bill splits
+      // For now, create realistic demo data with actual user info
       const mockSummaries: BillSummary[] = orders.map(order => {
         const mockSplits: GroupBillSplit[] = [
           {
@@ -47,7 +48,7 @@ export const SplitBill = ({ groupId, orders }: SplitBillProps) => {
               id: user?.id || '',
               email: user?.email || '',
               role: 'student',
-              full_name: 'You',
+              full_name: user?.user_metadata?.full_name || profile?.full_name || 'You',
               created_at: '',
               updated_at: ''
             }
@@ -55,7 +56,7 @@ export const SplitBill = ({ groupId, orders }: SplitBillProps) => {
           {
             id: 2,
             order_id: order.id,
-            user_id: 'user2',
+            user_id: 'member2',
             amount_owed: order.total_amount / 4,
             amount_paid: order.total_amount / 4,
             is_paid: true,
@@ -64,10 +65,10 @@ export const SplitBill = ({ groupId, orders }: SplitBillProps) => {
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
             user: {
-              id: 'user2',
-              email: 'alice@example.com',
+              id: 'member2',
+              email: 'member2@example.com',
               role: 'student',
-              full_name: 'Alice Johnson',
+              full_name: 'Group Member 2',
               created_at: '',
               updated_at: ''
             }
@@ -75,7 +76,7 @@ export const SplitBill = ({ groupId, orders }: SplitBillProps) => {
           {
             id: 3,
             order_id: order.id,
-            user_id: 'user3',
+            user_id: 'member3',
             amount_owed: order.total_amount / 4,
             amount_paid: 0,
             is_paid: false,
@@ -84,10 +85,10 @@ export const SplitBill = ({ groupId, orders }: SplitBillProps) => {
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
             user: {
-              id: 'user3',
-              email: 'bob@example.com',
+              id: 'member3',
+              email: 'member3@example.com',
               role: 'student',
-              full_name: 'Bob Smith',
+              full_name: 'Group Member 3',
               created_at: '',
               updated_at: ''
             }
@@ -95,7 +96,7 @@ export const SplitBill = ({ groupId, orders }: SplitBillProps) => {
           {
             id: 4,
             order_id: order.id,
-            user_id: 'user4',
+            user_id: 'member4',
             amount_owed: order.total_amount / 4,
             amount_paid: 0,
             is_paid: false,
@@ -104,10 +105,10 @@ export const SplitBill = ({ groupId, orders }: SplitBillProps) => {
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
             user: {
-              id: 'user4',
-              email: 'carol@example.com',
+              id: 'member4',
+              email: 'member4@example.com',
               role: 'student',
-              full_name: 'Carol Davis',
+              full_name: 'Group Member 4',
               created_at: '',
               updated_at: ''
             }

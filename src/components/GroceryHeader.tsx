@@ -1,4 +1,4 @@
-import { ShoppingCart, Plus, User, LogOut, Settings, Users, DollarSign } from "lucide-react";
+import { ShoppingCart, Plus, User, LogOut, Settings, Users, DollarSign, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -31,11 +31,13 @@ const GroceryHeader = ({ onAddClick, showAddButton = false }: GroceryHeaderProps
       case 'admin':
         return '👑 Admin';
       case 'category_manager':
-        return '📦 Category Manager';
+        return '� Category Manager';
+      case 'brand':
+        return '🏢 Brand';
       case 'student':
         return '🎓 Student';
       default:
-        return '👤 Anonymous';
+        return '👤 User';
     }
   };
 
@@ -98,6 +100,13 @@ const GroceryHeader = ({ onAddClick, showAddButton = false }: GroceryHeaderProps
                 <DropdownMenuItem onClick={() => navigate('/categories')}>
                   <Settings className="w-4 h-4 mr-2" />
                   Manage Categories
+                </DropdownMenuItem>
+              )}
+              
+              {profile?.role === 'brand' && (
+                <DropdownMenuItem onClick={() => navigate('/brand-dashboard')}>
+                  <Building2 className="w-4 h-4 mr-2" />
+                  Brand Dashboard
                 </DropdownMenuItem>
               )}
               

@@ -55,6 +55,9 @@ const Auth = () => {
             navigate('/admin');
           } else if (formData.email === 'GrocerySimplified@web.com') {
             navigate('/categories');
+          } else if (formData.email.endsWith('@grocerysimplified.com') && formData.email !== 'admin@grocerysimplified.com') {
+            // This is likely a brand account
+            navigate('/brand-dashboard');
           } else {
             navigate('/');
           }
@@ -107,6 +110,9 @@ const Auth = () => {
       } else if (email === 'GrocerySimplified@web.com') {
         console.log('Redirecting to /categories'); // Debug log
         navigate('/categories');
+      } else if (email.endsWith('@grocerysimplified.com') && email !== 'admin@grocerysimplified.com') {
+        console.log('Redirecting to /brand-dashboard'); // Debug log
+        navigate('/brand-dashboard');
       } else {
         console.log('Redirecting to /'); // Debug log
         navigate('/');

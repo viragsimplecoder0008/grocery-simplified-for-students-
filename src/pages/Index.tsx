@@ -63,14 +63,21 @@ const Index = () => {
         `).order('name')
       ]);
 
-      if (categoriesResult.error) throw categoriesResult.error;
-      if (productsResult.error) throw productsResult.error;
+      if (categoriesResult.error) {
+        console.warn('Categories fetch failed:', categoriesResult.error);
+        // Don't throw error, just use empty array
+      }
+      if (productsResult.error) {
+        console.warn('Products fetch failed:', productsResult.error);
+        // Don't throw error, just use empty array
+      }
 
       setCategories(categoriesResult.data || []);
       setProducts(productsResult.data || []);
     } catch (error: any) {
       console.error('Error fetching data:', error);
-      toast.error('Failed to load product data');
+      // Don't show error toast immediately, as this might happen during deployment
+      // User can still use the app without products loaded
     }
   };
 

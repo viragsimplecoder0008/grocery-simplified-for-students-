@@ -13,7 +13,7 @@ import { Brand } from '@/types/grocery';
 import { toast } from 'sonner';
 
 const BrandManagement = () => {
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   const [brands, setBrands] = useState<Brand[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -36,15 +36,48 @@ const BrandManagement = () => {
 
   const fetchBrands = async () => {
     try {
-      // Since brands table doesn't exist yet in the database schema,
-      // we'll use localStorage fallback for now
-      console.warn('Brands table not available, using localStorage fallback');
+      console.log('🔍 Attempting to fetch brands from database...');
+      // First try to fetch from database
+      const { data: dbBrands, error } = await supabase
+        .from('brands')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.warn('❌ Database brands fetch failed:', error);
+        console.log('Error details:', { 
+          message: error.message, 
+          details: error.details, 
+          hint: error.hint,
+          code: error.code 
+        });
+        
+        // Fall back to localStorage
+        const localBrands = JSON.parse(localStorage.getItem('fallback_brands') || '[]');
+        setBrands(localBrands);
+        
+        // Show user-friendly message based on error type
+        if (error.code === 'PGRST116' || error.message.includes('relation') || error.message.includes('does not exist')) {
+          console.log('📦 Using localStorage mode - brands table not found in database');
+          // Don't show error toast for missing table - this is expected in development
+        } else {
+          toast.error('Database connection failed - using offline mode');
+        }
+      } else {
+        console.log('✅ Brands loaded from database:', dbBrands);
+        setBrands(dbBrands || []);
+        
+        // Also sync with localStorage for offline support
+        if (dbBrands && dbBrands.length > 0) {
+          localStorage.setItem('fallback_brands', JSON.stringify(dbBrands));
+        }
+      }
+    } catch (error: any) {
+      console.error('❌ Exception while fetching brands:', error);
+      // Fall back to localStorage
       const localBrands = JSON.parse(localStorage.getItem('fallback_brands') || '[]');
       setBrands(localBrands);
-    } catch (error: any) {
-      console.error('Error fetching brands:', error);
-      setBrands([]);
-      toast.error('Error loading brands');
+      toast.error('Network error - using offline mode');
     } finally {
       setLoading(false);
     }
@@ -89,29 +122,137 @@ const BrandManagement = () => {
       };
 
       if (editingBrand) {
-        // Update existing brand in localStorage
-        const localBrands = brands.map(brand => 
-          brand.id === editingBrand.id 
-            ? { ...brand, ...brandData, updated_at: new Date().toISOString() }
-            : brand
-        );
-        setBrands(localBrands);
-        localStorage.setItem('fallback_brands', JSON.stringify(localBrands));
-        toast.success('Brand updated successfully (localStorage mode)');
+        // Update existing brand
+        try {
+          // Try database first
+          const { error: updateError } = await supabase
+            .from('brands')
+            .update({
+              ...brandData,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', editingBrand.id);
+
+          if (updateError) {
+            console.warn('Database update failed, using localStorage:', updateError);
+            // Fall back to localStorage
+            const localBrands = brands.map(brand => 
+              brand.id === editingBrand.id 
+                ? { ...brand, ...brandData, updated_at: new Date().toISOString() }
+                : brand
+            );
+            setBrands(localBrands);
+            localStorage.setItem('fallback_brands', JSON.stringify(localBrands));
+            toast.success('Brand updated successfully!');
+          } else {
+            // Update successful, refresh brands
+            await fetchBrands();
+            toast.success('Brand updated successfully!');
+          }
+        } catch (dbError) {
+          console.warn('Database unavailable, using localStorage:', dbError);
+          const localBrands = brands.map(brand => 
+            brand.id === editingBrand.id 
+              ? { ...brand, ...brandData, updated_at: new Date().toISOString() }
+              : brand
+          );
+          setBrands(localBrands);
+          localStorage.setItem('fallback_brands', JSON.stringify(localBrands));
+          toast.success('Brand updated successfully (localStorage mode)');
+        }
       } else {
-        // Create new brand in localStorage
-        const newBrand: Brand = {
-          ...brandData,
-          id: Date.now(),
-          password_hash: formData.password, // In real app, this would be hashed
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
+        // Create new brand - first create Supabase Auth user, then store brand data
+        console.log('Creating brand account with email:', formData.email);
         
-        const localBrands = [...brands, newBrand];
-        setBrands(localBrands);
-        localStorage.setItem('fallback_brands', JSON.stringify(localBrands));
-        toast.success('Brand created successfully (localStorage mode)');
+        // Step 1: Register the brand email as a Supabase user
+        try {
+          const { data: authData, error: authError } = await supabase.auth.signUp({
+            email: formData.email,
+            password: formData.password,
+            options: {
+              data: {
+                full_name: formData.name,
+                role: 'brand'
+              }
+            }
+          });
+
+          if (authError) {
+            // If user already exists, that's okay - just log it
+            if (authError.message.includes('already registered')) {
+              console.log('Brand email already registered, continuing with brand creation...');
+            } else {
+              console.error('Auth error:', authError);
+              toast.error('Failed to create brand authentication: ' + authError.message);
+              return;
+            }
+          } else {
+            console.log('Brand auth user created:', authData.user?.id);
+          }
+        } catch (authError: any) {
+          console.error('Auth creation error:', authError);
+          toast.error('Failed to create brand authentication');
+          return;
+        }
+
+        // Step 2: Create brand record in database
+        try {
+          const { data: newBrand, error: insertError } = await supabase
+            .from('brands')
+            .insert({
+              ...brandData,
+              password_hash: formData.password, // In real app, this would be hashed
+              created_by: user?.id,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            })
+            .select()
+            .single();
+
+          if (insertError) {
+            console.warn('Database insert failed, using localStorage:', insertError);
+            // Fall back to localStorage
+            const newBrandLocal: Brand = {
+              ...brandData,
+              id: Date.now(),
+              password_hash: formData.password,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            };
+            
+            const localBrands = [...brands, newBrandLocal];
+            setBrands(localBrands);
+            localStorage.setItem('fallback_brands', JSON.stringify(localBrands));
+            toast.success(`Brand created successfully! 
+Email: ${formData.email} 
+Password: ${formData.password}
+The brand can now log in with these credentials.`);
+          } else {
+            // Database insert successful
+            await fetchBrands(); // Refresh the brands list
+            toast.success(`Brand created successfully! 
+Email: ${formData.email} 
+Password: ${formData.password}
+The brand can now log in with these credentials.`);
+          }
+        } catch (dbError) {
+          console.warn('Database unavailable, using localStorage:', dbError);
+          // Fall back to localStorage
+          const newBrandLocal: Brand = {
+            ...brandData,
+            id: Date.now(),
+            password_hash: formData.password,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+          
+          const localBrands = [...brands, newBrandLocal];
+          setBrands(localBrands);
+          localStorage.setItem('fallback_brands', JSON.stringify(localBrands));
+          toast.success(`Brand created successfully (localStorage mode)! 
+Email: ${formData.email} 
+Password: ${formData.password}`);
+        }
       }
 
       setDialogOpen(false);

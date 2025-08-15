@@ -68,7 +68,7 @@ export interface Brand {
 export interface UserProfile {
   id: string;
   email: string;
-  role: 'admin' | 'category_manager' | 'student';
+  role: 'admin' | 'category_manager' | 'student' | 'brand';
   full_name?: string;
   currency?: Currency;
   budget?: number;
