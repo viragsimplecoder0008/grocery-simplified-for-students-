@@ -177,6 +177,52 @@ CREATE TABLE IF NOT EXISTS public.group_notifications (
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
+-- 7. Create split bills system tables
+CREATE TABLE IF NOT EXISTS public.split_bills (
+    id BIGSERIAL PRIMARY KEY,
+    group_id BIGINT NOT NULL REFERENCES public.groups(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    description TEXT,
+    total_amount DECIMAL(10,2) NOT NULL,
+    tax_amount DECIMAL(10,2) DEFAULT 0,
+    tip_amount DECIMAL(10,2) DEFAULT 0,
+    split_method TEXT NOT NULL CHECK (split_method IN ('equal', 'itemized', 'custom')),
+    items JSONB, -- Store bill items as JSON
+    status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'completed', 'cancelled')),
+    created_by UUID NOT NULL REFERENCES public.profiles(id),
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.bill_splits (
+    id BIGSERIAL PRIMARY KEY,
+    split_bill_id BIGINT NOT NULL REFERENCES public.split_bills(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    amount_owed DECIMAL(10,2) NOT NULL,
+    amount_paid DECIMAL(10,2) DEFAULT 0,
+    status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'cancelled')),
+    paid_at TIMESTAMP WITH TIME ZONE,
+    notes TEXT,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+    UNIQUE(split_bill_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS public.split_bill_transactions (
+    id BIGSERIAL PRIMARY KEY,
+    bill_split_id BIGINT NOT NULL REFERENCES public.bill_splits(id) ON DELETE CASCADE,
+    amount DECIMAL(10,2) NOT NULL,
+    transaction_type TEXT NOT NULL CHECK (transaction_type IN ('payment', 'refund')),
+    payment_method TEXT, -- 'cash', 'razorpay', 'upi', 'card', 'netbanking', 'wallet', etc.
+    transaction_id TEXT, -- External payment system ID (Razorpay payment ID)
+    order_id TEXT, -- Razorpay order ID
+    payment_status TEXT DEFAULT 'pending' CHECK (payment_status IN ('pending', 'success', 'failed', 'cancelled')),
+    gateway_response JSONB, -- Store full gateway response for debugging
+    notes TEXT,
+    created_by UUID NOT NULL REFERENCES public.profiles(id),
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
 -- 7. Enable Row Level Security on all tables
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
@@ -186,6 +232,9 @@ ALTER TABLE public.groups ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.group_memberships ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.group_grocery_lists ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.group_notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.split_bills ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.bill_splits ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.split_bill_transactions ENABLE ROW LEVEL SECURITY;
 
 -- 8. Create utility functions
 CREATE OR REPLACE FUNCTION public.get_user_role(user_id UUID)
@@ -266,10 +315,53 @@ CREATE TRIGGER update_groups_updated_at
 
 DROP TRIGGER IF EXISTS update_group_grocery_lists_updated_at ON public.group_grocery_lists;
 CREATE TRIGGER update_group_grocery_lists_updated_at
-  BEFORE UPDATE ON public.group_grocery_lists
-  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+    BEFORE UPDATE ON public.group_grocery_lists
+    FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
--- 10. Create security policies
+CREATE TRIGGER update_split_bills_updated_at
+    BEFORE UPDATE ON public.split_bills
+    FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+CREATE TRIGGER update_bill_splits_updated_at
+    BEFORE UPDATE ON public.bill_splits
+    FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+-- Create function to automatically update bill split status when fully paid
+CREATE OR REPLACE FUNCTION public.update_bill_split_status()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_catalog
+AS $$
+BEGIN
+    -- Update the bill split status if amount is fully paid
+    IF NEW.amount_paid >= (SELECT amount_owed FROM public.bill_splits WHERE id = NEW.bill_split_id) THEN
+        UPDATE public.bill_splits 
+        SET status = 'paid', paid_at = COALESCE(NEW.created_at, now())
+        WHERE id = NEW.bill_split_id;
+    END IF;
+    
+    -- Check if all splits for this bill are paid and update main bill status
+    IF NOT EXISTS (
+        SELECT 1 FROM public.bill_splits 
+        WHERE split_bill_id = (SELECT split_bill_id FROM public.bill_splits WHERE id = NEW.bill_split_id)
+        AND status != 'paid'
+    ) THEN
+        UPDATE public.split_bills 
+        SET status = 'completed'
+        WHERE id = (SELECT split_bill_id FROM public.bill_splits WHERE id = NEW.bill_split_id);
+    END IF;
+    
+    RETURN NEW;
+END;
+$$;
+
+-- Create trigger for automatic status updates
+CREATE TRIGGER update_bill_split_status_on_payment
+    AFTER INSERT ON public.split_bill_transactions
+    FOR EACH ROW 
+    WHEN (NEW.transaction_type = 'payment')
+    EXECUTE FUNCTION public.update_bill_split_status();-- 10. Create security policies
 -- Profiles policies
 DROP POLICY IF EXISTS "Users can view their own profile" ON public.profiles;
 CREATE POLICY "Users can view their own profile" ON public.profiles
@@ -406,6 +498,87 @@ DROP POLICY IF EXISTS "Users can update their own notifications" ON public.group
 CREATE POLICY "Users can update their own notifications" ON public.group_notifications
   FOR UPDATE USING (auth.uid() = user_id);
 
+-- Split bills policies
+DROP POLICY IF EXISTS "Group members can view split bills" ON public.split_bills;
+CREATE POLICY "Group members can view split bills" ON public.split_bills
+  FOR SELECT USING (
+    auth.uid() IN (
+      SELECT user_id FROM public.group_memberships 
+      WHERE group_id = split_bills.group_id AND is_active = true
+    )
+  );
+
+DROP POLICY IF EXISTS "Group members can create split bills" ON public.split_bills;
+CREATE POLICY "Group members can create split bills" ON public.split_bills
+  FOR INSERT WITH CHECK (
+    auth.uid() IN (
+      SELECT user_id FROM public.group_memberships 
+      WHERE group_id = split_bills.group_id AND is_active = true
+    )
+  );
+
+DROP POLICY IF EXISTS "Bill creators can update their split bills" ON public.split_bills;
+CREATE POLICY "Bill creators can update their split bills" ON public.split_bills
+  FOR UPDATE USING (auth.uid() = created_by);
+
+DROP POLICY IF EXISTS "Bill creators can delete their split bills" ON public.split_bills;
+CREATE POLICY "Bill creators can delete their split bills" ON public.split_bills
+  FOR DELETE USING (auth.uid() = created_by);
+
+-- Bill splits policies
+DROP POLICY IF EXISTS "Users can view their own bill splits" ON public.bill_splits;
+CREATE POLICY "Users can view their own bill splits" ON public.bill_splits
+  FOR SELECT USING (
+    auth.uid() = user_id OR 
+    auth.uid() IN (
+      SELECT created_by FROM public.split_bills WHERE id = bill_splits.split_bill_id
+    )
+  );
+
+DROP POLICY IF EXISTS "Bill creators can insert bill splits" ON public.bill_splits;
+CREATE POLICY "Bill creators can insert bill splits" ON public.bill_splits
+  FOR INSERT WITH CHECK (
+    auth.uid() IN (
+      SELECT created_by FROM public.split_bills WHERE id = bill_splits.split_bill_id
+    )
+  );
+
+DROP POLICY IF EXISTS "Users can update their own bill splits" ON public.bill_splits;
+CREATE POLICY "Users can update their own bill splits" ON public.bill_splits
+  FOR UPDATE USING (
+    auth.uid() = user_id OR 
+    auth.uid() IN (
+      SELECT created_by FROM public.split_bills WHERE id = bill_splits.split_bill_id
+    )
+  );
+
+-- Split bill transactions policies
+DROP POLICY IF EXISTS "Users can view transactions for their splits" ON public.split_bill_transactions;
+CREATE POLICY "Users can view transactions for their splits" ON public.split_bill_transactions
+  FOR SELECT USING (
+    auth.uid() IN (
+      SELECT user_id FROM public.bill_splits WHERE id = split_bill_transactions.bill_split_id
+    ) OR
+    auth.uid() IN (
+      SELECT sb.created_by FROM public.split_bills sb
+      JOIN public.bill_splits bs ON sb.id = bs.split_bill_id
+      WHERE bs.id = split_bill_transactions.bill_split_id
+    )
+  );
+
+DROP POLICY IF EXISTS "Users can create transactions for their splits" ON public.split_bill_transactions;
+CREATE POLICY "Users can create transactions for their splits" ON public.split_bill_transactions
+  FOR INSERT WITH CHECK (
+    auth.uid() IN (
+      SELECT user_id FROM public.bill_splits WHERE id = split_bill_transactions.bill_split_id
+    ) OR
+    auth.uid() IN (
+      SELECT sb.created_by FROM public.split_bills sb
+      JOIN public.bill_splits bs ON sb.id = bs.split_bill_id
+      WHERE bs.id = split_bill_transactions.bill_split_id
+    )
+  );
+
 -- 11. Create indexes for performance
 CREATE INDEX IF NOT EXISTS idx_profiles_birth_month_day ON public.profiles(birth_month, birth_day) WHERE birth_month IS NOT NULL AND birth_day IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_profiles_role ON public.profiles(role);
@@ -420,6 +593,13 @@ CREATE INDEX IF NOT EXISTS idx_group_memberships_group_user ON public.group_memb
 CREATE INDEX IF NOT EXISTS idx_group_memberships_user_active ON public.group_memberships(user_id) WHERE is_active = true;
 CREATE INDEX IF NOT EXISTS idx_group_grocery_lists_group_id ON public.group_grocery_lists(group_id);
 CREATE INDEX IF NOT EXISTS idx_group_notifications_user_unread ON public.group_notifications(user_id) WHERE is_read = false;
+CREATE INDEX IF NOT EXISTS idx_split_bills_group_id ON public.split_bills(group_id);
+CREATE INDEX IF NOT EXISTS idx_split_bills_created_by ON public.split_bills(created_by);
+CREATE INDEX IF NOT EXISTS idx_split_bills_status ON public.split_bills(status);
+CREATE INDEX IF NOT EXISTS idx_bill_splits_split_bill_id ON public.bill_splits(split_bill_id);
+CREATE INDEX IF NOT EXISTS idx_bill_splits_user_id ON public.bill_splits(user_id);
+CREATE INDEX IF NOT EXISTS idx_bill_splits_status ON public.bill_splits(status);
+CREATE INDEX IF NOT EXISTS idx_split_bill_transactions_bill_split_id ON public.split_bill_transactions(bill_split_id);
 
 -- 12. Insert sample data (safe to run multiple times)
 INSERT INTO public.categories (name, description, color, created_by)

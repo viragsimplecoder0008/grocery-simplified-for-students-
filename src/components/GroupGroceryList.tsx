@@ -16,9 +16,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { ArrowLeft, Plus, ShoppingCart, Check, X, Trash2, Edit, Package } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ArrowLeft, Plus, ShoppingCart, Check, X, Trash2, Edit, Package, Receipt } from 'lucide-react';
 import { toast } from 'sonner';
 import { Product, Category } from '@/types/grocery';
+import SplitBillDialog from '@/components/SplitBillDialog';
+import SplitBillsManager from '@/components/SplitBillsManager';
 
 export function GroupGroceryList() {
   const { groupId } = useParams<{ groupId: string }>();
@@ -353,112 +356,132 @@ export function GroupGroceryList() {
           </Card>
         </div>
 
-        {/* Grocery Items List */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Grocery Items</CardTitle>
-            <CardDescription>
-              {summary.totalItems > 0 ? 
-                `${summary.remainingItems} items remaining • ${summary.purchasedItems} completed` :
-                'No items in this group list yet'
-              }
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {groupItems.length === 0 ? (
-              <div className="text-center py-12">
-                <ShoppingCart className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">No Items Yet</h3>
-                <p className="text-gray-600 mb-6">Start building your shared grocery list by adding items!</p>
-                <Button onClick={() => setAddDialogOpen(true)} className="grocery-gradient">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add First Item
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {groupItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className={`flex items-center justify-between p-4 rounded-lg border ${
-                      item.is_purchased ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'
-                    }`}
-                  >
-                    <div className="flex items-center gap-4 flex-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handlePurchaseToggle(item)}
-                        className={`${
-                          item.is_purchased ? 'text-green-600 hover:text-green-800' : 'text-gray-400 hover:text-gray-600'
+        {/* Main Content with Tabs */}
+        <Tabs defaultValue="grocery-list" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="grocery-list" className="gap-2">
+              <ShoppingCart className="h-4 w-4" />
+              Grocery List
+            </TabsTrigger>
+            <TabsTrigger value="split-bills" className="gap-2">
+              <Receipt className="h-4 w-4" />
+              Split Bills
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="grocery-list" className="space-y-4">
+            {/* Grocery Items List */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Grocery Items</CardTitle>
+                <CardDescription>
+                  {summary.totalItems > 0 ? 
+                    `${summary.remainingItems} items remaining • ${summary.purchasedItems} completed` :
+                    'No items in this group list yet'
+                  }
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {groupItems.length === 0 ? (
+                  <div className="text-center py-12">
+                    <ShoppingCart className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">No Items Yet</h3>
+                    <p className="text-gray-600 mb-6">Start building your shared grocery list by adding items!</p>
+                    <Button onClick={() => setAddDialogOpen(true)} className="grocery-gradient">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add First Item
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {groupItems.map((item) => (
+                      <div
+                        key={item.id}
+                        className={`flex items-center justify-between p-4 rounded-lg border ${
+                          item.is_purchased ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'
                         }`}
                       >
-                        {item.is_purchased ? <Check className="w-5 h-5" /> : <div className="w-5 h-5 border-2 rounded" />}
-                      </Button>
-                      
-                      <div className="flex-1">
+                        <div className="flex items-center gap-4 flex-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handlePurchaseToggle(item)}
+                            className={`${
+                              item.is_purchased ? 'text-green-600 hover:text-green-800' : 'text-gray-400 hover:text-gray-600'
+                            }`}
+                          >
+                            {item.is_purchased ? <Check className="w-5 h-5" /> : <div className="w-5 h-5 border-2 rounded" />}
+                          </Button>
+                          
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <h3 className={`font-medium ${item.is_purchased ? 'line-through text-gray-600' : 'text-gray-900'}`}>
+                                {item.name}
+                              </h3>
+                              {item.category && (
+                                <Badge variant="secondary" className="text-xs">
+                                  {item.category}
+                                </Badge>
+                              )}
+                            </div>
+                            
+                            <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
+                              <span>Qty: {item.quantity}</span>
+                              <span>{currencySymbol}{item.price.toFixed(2)} each</span>
+                              <span className="font-medium">{currencySymbol}{(item.price * item.quantity).toFixed(2)} total</span>
+                            </div>
+                            
+                            {item.notes && (
+                              <p className="text-sm text-gray-500 mt-1">{item.notes}</p>
+                            )}
+                            
+                            <div className="text-xs text-gray-400 mt-1">
+                              Added {new Date(item.created_at).toLocaleDateString()}
+                              {item.is_purchased && item.purchased_at && (
+                                <> • Purchased {new Date(item.purchased_at).toLocaleDateString()}</>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
                         <div className="flex items-center gap-2">
-                          <h3 className={`font-medium ${item.is_purchased ? 'line-through text-gray-600' : 'text-gray-900'}`}>
-                            {item.name}
-                          </h3>
-                          {item.category && (
-                            <Badge variant="secondary" className="text-xs">
-                              {item.category}
-                            </Badge>
-                          )}
-                        </div>
-                        
-                        <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
-                          <span>Qty: {item.quantity}</span>
-                          <span>{currencySymbol}{item.price.toFixed(2)} each</span>
-                          <span className="font-medium">{currencySymbol}{(item.price * item.quantity).toFixed(2)} total</span>
-                        </div>
-                        
-                        {item.notes && (
-                          <p className="text-sm text-gray-500 mt-1">{item.notes}</p>
-                        )}
-                        
-                        <div className="text-xs text-gray-400 mt-1">
-                          Added {new Date(item.created_at).toLocaleDateString()}
-                          {item.is_purchased && item.purchased_at && (
-                            <> • Purchased {new Date(item.purchased_at).toLocaleDateString()}</>
-                          )}
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-800">
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Item</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to remove "{item.name}" from the group list? This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteItem(item.id)}
+                                  className="bg-red-600 hover:bg-red-700"
+                                >
+                                  Delete Item
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-800">
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Item</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to remove "{item.name}" from the group list? This action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDeleteItem(item.id)}
-                              className="bg-red-600 hover:bg-red-700"
-                            >
-                              Delete Item
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="split-bills">
+            <SplitBillsManager groupId={parseInt(groupId || '0')} />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

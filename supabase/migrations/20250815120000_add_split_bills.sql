@@ -39,8 +39,11 @@ CREATE TABLE IF NOT EXISTS public.split_bill_transactions (
     bill_split_id BIGINT NOT NULL REFERENCES public.bill_splits(id) ON DELETE CASCADE,
     amount DECIMAL(10,2) NOT NULL,
     transaction_type TEXT NOT NULL CHECK (transaction_type IN ('payment', 'refund')),
-    payment_method TEXT, -- 'cash', 'venmo', 'paypal', 'bank_transfer', etc.
-    transaction_id TEXT, -- External payment system ID
+    payment_method TEXT, -- 'cash', 'razorpay', 'upi', 'card', 'netbanking', 'wallet', etc.
+    transaction_id TEXT, -- External payment system ID (Razorpay payment ID)
+    order_id TEXT, -- Razorpay order ID
+    payment_status TEXT DEFAULT 'pending' CHECK (payment_status IN ('pending', 'success', 'failed', 'cancelled')),
+    gateway_response JSONB, -- Store full gateway response for debugging
     notes TEXT,
     created_by UUID NOT NULL REFERENCES public.profiles(id),
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()

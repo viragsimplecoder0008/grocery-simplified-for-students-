@@ -32,7 +32,15 @@ A modern, collaborative grocery list application with AI-powered recommendations
 - **Gemini AI Integration**: Powered by Google's Gemini AI with your provided API key
 - **Smart Fallback**: Intelligent fallback recommendations when AI service is unavailable
 
-### 📱 User Experience
+### � Split Bills & Payments
+- **Group Bill Splitting**: Automatically split group shopping bills among members
+- **Razorpay Integration**: Secure online payments with India's leading payment gateway
+- **Multiple Payment Methods**: Credit/Debit cards, UPI, Net Banking, Digital Wallets
+- **Real-time Settlement**: Instant payment processing and bill settlement
+- **Payment History**: Complete transaction history with payment status tracking
+- **Manual Payment Recording**: Option to record offline payments (cash, bank transfers)
+
+### �📱 User Experience
 - **Modern UI**: Clean, responsive design with Tailwind CSS
 - **Real-time Updates**: Live updates across all connected devices
 - **Offline-First**: Complete functionality even without internet connection
@@ -85,6 +93,19 @@ A modern, collaborative grocery list application with AI-powered recommendations
 
 ## 🔧 Configuration
 
+### Razorpay Payment Gateway
+Set up your Razorpay credentials in `.env`:
+```env
+VITE_RAZORPAY_KEY_ID=your_razorpay_key_id
+VITE_RAZORPAY_KEY_SECRET=your_razorpay_key_secret
+```
+
+Get your credentials from:
+1. Sign up at [razorpay.com](https://razorpay.com)
+2. Navigate to Settings → API Keys
+3. Generate Test/Live API keys
+4. Update your `.env` file
+
 ### Gemini AI API
 The Gemini AI API key is pre-configured in `gemini_config.py`:
 ```python
@@ -96,6 +117,8 @@ Create a `.env` file for additional configuration:
 ```env
 VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_ANON_KEY=your_supabase_key
+VITE_RAZORPAY_KEY_ID=your_razorpay_key_id
+VITE_RAZORPAY_KEY_SECRET=your_razorpay_key_secret
 ```
 
 ## 📖 Usage Guide
@@ -233,6 +256,14 @@ For support and questions:
 - AI service failures fall back to intelligent defaults
 
 ## 🆕 Recent Updates
+
+### Version 2.1 - Payment Integration 🆕
+- ✅ **Razorpay Integration**: Complete payment gateway integration for split bills
+- ✅ **Multi-Payment Support**: Credit/Debit cards, UPI, Net Banking, Wallets
+- ✅ **Real-time Settlement**: Instant payment processing with automatic bill updates
+- ✅ **Payment Security**: PCI DSS compliant payments with signature verification
+- ✅ **Transaction History**: Complete payment tracking with gateway responses
+- ✅ **Manual Payment Options**: Record offline payments alongside online transactions
 
 ### Version 2.0 - AI Integration
 - ✅ Added Gemini AI birthday recommendations

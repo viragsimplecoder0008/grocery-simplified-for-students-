@@ -392,6 +392,174 @@ export type Database = {
         }
         Relationships: []
       }
+      split_bills: {
+        Row: {
+          id: number
+          group_id: number
+          title: string
+          description: string | null
+          total_amount: number
+          tax_amount: number
+          tip_amount: number
+          split_method: 'equal' | 'itemized' | 'custom'
+          items: Json | null
+          status: 'pending' | 'completed' | 'cancelled'
+          created_by: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          group_id: number
+          title: string
+          description?: string | null
+          total_amount: number
+          tax_amount?: number
+          tip_amount?: number
+          split_method: 'equal' | 'itemized' | 'custom'
+          items?: Json | null
+          status?: 'pending' | 'completed' | 'cancelled'
+          created_by: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          group_id?: number
+          title?: string
+          description?: string | null
+          total_amount?: number
+          tax_amount?: number
+          tip_amount?: number
+          split_method?: 'equal' | 'itemized' | 'custom'
+          items?: Json | null
+          status?: 'pending' | 'completed' | 'cancelled'
+          created_by?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "split_bills_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "split_bills_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bill_splits: {
+        Row: {
+          id: number
+          split_bill_id: number
+          user_id: string
+          amount_owed: number
+          amount_paid: number
+          status: 'pending' | 'paid' | 'cancelled'
+          paid_at: string | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          split_bill_id: number
+          user_id: string
+          amount_owed: number
+          amount_paid?: number
+          status?: 'pending' | 'paid' | 'cancelled'
+          paid_at?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          split_bill_id?: number
+          user_id?: string
+          amount_owed?: number
+          amount_paid?: number
+          status?: 'pending' | 'paid' | 'cancelled'
+          paid_at?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bill_splits_split_bill_id_fkey"
+            columns: ["split_bill_id"]
+            isOneToOne: false
+            referencedRelation: "split_bills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bill_splits_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      split_bill_transactions: {
+        Row: {
+          id: number
+          bill_split_id: number
+          amount: number
+          transaction_type: 'payment' | 'refund'
+          payment_method: string | null
+          transaction_id: string | null
+          notes: string | null
+          created_by: string
+          created_at: string
+        }
+        Insert: {
+          id?: number
+          bill_split_id: number
+          amount: number
+          transaction_type: 'payment' | 'refund'
+          payment_method?: string | null
+          transaction_id?: string | null
+          notes?: string | null
+          created_by: string
+          created_at?: string
+        }
+        Update: {
+          id?: number
+          bill_split_id?: number
+          amount?: number
+          transaction_type?: 'payment' | 'refund'
+          payment_method?: string | null
+          transaction_id?: string | null
+          notes?: string | null
+          created_by?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "split_bill_transactions_bill_split_id_fkey"
+            columns: ["bill_split_id"]
+            isOneToOne: false
+            referencedRelation: "bill_splits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "split_bill_transactions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
