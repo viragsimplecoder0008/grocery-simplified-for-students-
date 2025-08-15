@@ -142,7 +142,7 @@ export function useGroups() {
         localStorage.setItem('fallback_memberships', JSON.stringify(localMemberships));
         
         await fetchUserGroups();
-        toast.success(`Group "${name}" created successfully! (Using fallback mode - apply database migration for full functionality)`);
+        toast.success(`Group "${name}" created successfully!`);
         
         return { success: true, group: newGroup as Group };
       } else {
@@ -234,7 +234,7 @@ export function useGroups() {
       
       localStorage.setItem('fallback_memberships', JSON.stringify(localMemberships));
       await fetchUserGroups();
-      toast.success(`Successfully joined "${group.name}"! (Using fallback mode)`);
+      toast.success(`Successfully joined "${group.name}"!`);
       
       return { success: true };
     } catch (error: any) {

@@ -30,21 +30,14 @@ export const SplitBill = ({ groupId, orders }: SplitBillProps) => {
     setLoading(true);
     try {
       // In a real app, this would be an API call
-      const mockSummaries: BillSummary[] = orders.map(order => ({
-        order_id: order.id,
-        total_amount: order.total_amount,
-        total_members: 4, // Mock data
-        members_who_joined_before: 3,
-        amount_per_member: order.total_amount / 3, // Only members who joined before order
-        total_paid: order.total_amount * 0.6, // Mock 60% paid
-        total_outstanding: order.total_amount * 0.4,
-        splits: [
+      const mockSummaries: BillSummary[] = orders.map(order => {
+        const mockSplits: GroupBillSplit[] = [
           {
             id: 1,
             order_id: order.id,
             user_id: user?.id || '',
-            amount_owed: order.total_amount / 3,
-            amount_paid: order.total_amount / 3,
+            amount_owed: order.total_amount / 4,
+            amount_paid: order.total_amount / 4,
             is_paid: true,
             joined_before_order: true,
             payment_date: new Date().toISOString(),
@@ -58,9 +51,103 @@ export const SplitBill = ({ groupId, orders }: SplitBillProps) => {
               created_at: '',
               updated_at: ''
             }
+          },
+          {
+            id: 2,
+            order_id: order.id,
+            user_id: 'user2',
+            amount_owed: order.total_amount / 4,
+            amount_paid: order.total_amount / 4,
+            is_paid: true,
+            joined_before_order: true,
+            payment_date: new Date().toISOString(),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            user: {
+              id: 'user2',
+              email: 'alice@example.com',
+              role: 'student',
+              full_name: 'Alice Johnson',
+              created_at: '',
+              updated_at: ''
+            }
+          },
+          {
+            id: 3,
+            order_id: order.id,
+            user_id: 'user3',
+            amount_owed: order.total_amount / 4,
+            amount_paid: 0,
+            is_paid: false,
+            joined_before_order: true,
+            payment_date: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            user: {
+              id: 'user3',
+              email: 'bob@example.com',
+              role: 'student',
+              full_name: 'Bob Smith',
+              created_at: '',
+              updated_at: ''
+            }
+          },
+          {
+            id: 4,
+            order_id: order.id,
+            user_id: 'user4',
+            amount_owed: order.total_amount / 4,
+            amount_paid: 0,
+            is_paid: false,
+            joined_before_order: true,
+            payment_date: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            user: {
+              id: 'user4',
+              email: 'carol@example.com',
+              role: 'student',
+              full_name: 'Carol Davis',
+              created_at: '',
+              updated_at: ''
+            }
+          },
+          {
+            id: 5,
+            order_id: order.id,
+            user_id: 'user5',
+            amount_owed: 0,
+            amount_paid: 0,
+            is_paid: false,
+            joined_before_order: false,
+            payment_date: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            user: {
+              id: 'user5',
+              email: 'dave@example.com',
+              role: 'student',
+              full_name: 'Dave Wilson',
+              created_at: '',
+              updated_at: ''
+            }
           }
-        ]
-      }));
+        ];
+
+        const membersResponsible = mockSplits.filter(s => s.joined_before_order).length;
+        const totalPaid = mockSplits.reduce((sum, s) => sum + (s.is_paid ? s.amount_paid : 0), 0);
+
+        return {
+          order_id: order.id,
+          total_amount: order.total_amount,
+          total_members: mockSplits.length,
+          members_who_joined_before: membersResponsible,
+          amount_per_member: order.total_amount / membersResponsible,
+          total_paid: totalPaid,
+          total_outstanding: order.total_amount - totalPaid,
+          splits: mockSplits
+        };
+      });
       setBillSummaries(mockSummaries);
     } catch (error) {
       console.error('Error fetching bill summaries:', error);
@@ -88,7 +175,7 @@ export const SplitBill = ({ groupId, orders }: SplitBillProps) => {
   const getStatusText = (split: GroupBillSplit) => {
     if (split.is_paid) return "Paid";
     if (!split.joined_before_order) return "Joined after order";
-    return "Outstanding";
+    return "Due";
   };
 
   const getStatusColor = (split: GroupBillSplit) => {
@@ -172,42 +259,86 @@ export const SplitBill = ({ groupId, orders }: SplitBillProps) => {
                       {formatPrice(summary.total_paid, currency)}
                     </div>
                     <div className="text-sm text-green-600">Paid</div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {summary.splits.filter(s => s.is_paid && s.joined_before_order).length} members paid
+                    </div>
                   </div>
                   <div className="bg-red-50 p-3 rounded-lg">
                     <div className="text-2xl font-bold text-red-600">
                       {formatPrice(summary.total_outstanding, currency)}
                     </div>
-                    <div className="text-sm text-red-600">Outstanding</div>
+                    <div className="text-sm text-red-600">Due</div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {summary.splits.filter(s => !s.is_paid && s.joined_before_order).length} members pending
+                    </div>
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <h4 className="font-medium">Member Payments:</h4>
-                  {summary.splits.map((split) => (
-                    <div key={split.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                      <div className="flex items-center gap-2">
-                        {getStatusIcon(split)}
-                        <span>{split.user?.full_name || split.user?.email}</span>
-                        <Badge className={getStatusColor(split)}>
-                          {getStatusText(split)}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">
-                          {split.joined_before_order ? formatPrice(split.amount_owed, currency) : 'N/A'}
-                        </span>
-                        {!split.is_paid && split.joined_before_order && (
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => handleMarkAsPaid(split.id)}
-                          >
-                            Mark Paid
-                          </Button>
+                <div className="space-y-3">
+                  <h4 className="font-medium">Payment Status:</h4>
+                  
+                  {/* Payment Summary */}
+                  <div className="grid grid-cols-2 gap-4 p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <h5 className="text-sm font-medium text-green-700 mb-2">✅ Paid Members</h5>
+                      <div className="space-y-1">
+                        {summary.splits.filter(s => s.is_paid && s.joined_before_order).map((split) => (
+                          <div key={split.id} className="flex items-center gap-1 text-sm">
+                            <span className="w-1 h-1 bg-green-500 rounded-full"></span>
+                            <span className="text-green-700">{split.user?.full_name || split.user?.email}</span>
+                          </div>
+                        ))}
+                        {summary.splits.filter(s => s.is_paid && s.joined_before_order).length === 0 && (
+                          <p className="text-sm text-gray-500 italic">No payments yet</p>
                         )}
                       </div>
                     </div>
-                  ))}
+                    
+                    <div>
+                      <h5 className="text-sm font-medium text-red-700 mb-2">⏳ Due Payments</h5>
+                      <div className="space-y-1">
+                        {summary.splits.filter(s => !s.is_paid && s.joined_before_order).map((split) => (
+                          <div key={split.id} className="flex items-center gap-1 text-sm">
+                            <span className="w-1 h-1 bg-red-500 rounded-full"></span>
+                            <span className="text-red-700">{split.user?.full_name || split.user?.email}</span>
+                          </div>
+                        ))}
+                        {summary.splits.filter(s => !s.is_paid && s.joined_before_order).length === 0 && (
+                          <p className="text-sm text-gray-500 italic">All paid up! 🎉</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Detailed Member List */}
+                  <div>
+                    <h5 className="text-sm font-medium mb-2">All Members:</h5>
+                    {summary.splits.map((split) => (
+                      <div key={split.id} className="flex items-center justify-between p-2 bg-white border rounded mb-1">
+                        <div className="flex items-center gap-2">
+                          {getStatusIcon(split)}
+                          <span className="font-medium">{split.user?.full_name || split.user?.email}</span>
+                          <Badge className={getStatusColor(split)}>
+                            {getStatusText(split)}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">
+                            {split.joined_before_order ? formatPrice(split.amount_owed, currency) : 'N/A'}
+                          </span>
+                          {!split.is_paid && split.joined_before_order && (
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleMarkAsPaid(split.id)}
+                            >
+                              Mark Paid
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="bg-yellow-50 p-3 rounded-lg">

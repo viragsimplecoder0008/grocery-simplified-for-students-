@@ -27,28 +27,28 @@ const Index = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen page-gradient flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-white">Loading your dashboard...</p>
+          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading your dashboard...</p>
         </div>
       </div>
     );
   }
 
-  const activeGroups = userGroups?.filter(group => group.is_active) || [];
+  const activeGroups = userGroups.filter(group => group.is_active);
 
   return (
-    <div className="min-h-screen page-gradient">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="container mx-auto px-4 py-8">
         <GroceryHeader showAddButton={false} />
         
         {/* Welcome Section */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2 text-shadow">
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">
             Welcome back, {profile?.full_name || user?.email?.split('@')[0]}! 👋
           </h1>
-          <p className="text-white/90 text-lg text-shadow">
+          <p className="text-gray-600 text-lg">
             Manage your group grocery lists and collaborate with others
           </p>
         </div>
@@ -77,13 +77,13 @@ const Index = () => {
                   <CardContent className="pt-6">
                     <div className="text-center py-12">
                       <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-white mb-2">No Groups Yet</h3>
-                      <p className="text-white/80 mb-4">
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">No Groups Yet</h3>
+                      <p className="text-gray-600 mb-4">
                         Join a group or create your own to start collaborative grocery shopping
                       </p>
                       <Button 
                         onClick={() => navigate('/groups')}
-                        className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+                        className="bg-blue-600 hover:bg-blue-700"
                       >
                         <Plus className="w-4 h-4 mr-2" />
                         Create or Join Group
@@ -162,7 +162,7 @@ const Index = () => {
             <div className="flex gap-4 justify-center">
               <Button 
                 onClick={() => navigate('/groups')}
-                className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+                className="bg-blue-600 hover:bg-blue-700"
               >
                 <Users className="w-4 h-4 mr-2" />
                 Manage All Groups
@@ -171,15 +171,7 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="budget">
-            <BudgetCard 
-              budget={{
-                totalItems: 0,
-                totalCost: profile?.budget || 0,
-                purchasedItems: 0,
-                purchasedCost: 0,
-                remainingCost: profile?.budget || 0
-              }} 
-            />
+            <BudgetCard budget={profile?.budget || 0} />
           </TabsContent>
 
           <TabsContent value="recommendations">
