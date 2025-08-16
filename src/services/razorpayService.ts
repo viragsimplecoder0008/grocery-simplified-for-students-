@@ -247,7 +247,7 @@ export class RazorpayPaymentService {
       }
 
       toast.success('Payment successful! 🎉', {
-        description: `₹${paymentData.amount.toFixed(2)} paid via Razorpay`
+        description: `Payment of ${paymentData.amount.toFixed(2)} processed via Razorpay`
       });
 
     } catch (error: any) {

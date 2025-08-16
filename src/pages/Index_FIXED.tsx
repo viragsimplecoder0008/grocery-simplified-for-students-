@@ -234,7 +234,7 @@ const Index = () => {
                   <p className="text-gray-600 mb-4">
                     Sign in to create and manage your personal grocery list.
                   </p>
-                  <Button onClick={() => window.location.href = '/auth'}>
+                  <Button onClick={() => navigate('/auth')}>
                     Sign In
                   </Button>
                 </CardContent>

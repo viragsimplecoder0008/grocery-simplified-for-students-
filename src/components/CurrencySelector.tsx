@@ -68,10 +68,8 @@ const CurrencySelector = ({
       
       toast.success(`Currency updated to ${getCurrencyName(newCurrency)}`);
       
-      // Refresh the page to update all price displays
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
+      // Note: Components will re-render automatically due to state change
+      // No need to reload the page
     } catch (error: any) {
       console.error('Error updating currency:', error);
       

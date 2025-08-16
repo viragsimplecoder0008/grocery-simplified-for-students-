@@ -69,7 +69,7 @@ const CategoriesPanel = () => {
               <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
               <div className="space-y-3">
                 <button 
-                  onClick={() => window.location.href = '/admin'}
+                  onClick={() => navigate('/admin')}
                   className="w-full text-left p-4 grocery-gradient-light border border-blue-200 rounded-lg hover:opacity-90 transition-all duration-200 text-blue-900"
                 >
                   <div className="flex items-center gap-3">
@@ -86,7 +86,7 @@ const CategoriesPanel = () => {
                 </button>
                 
                 <button 
-                  onClick={() => window.location.href = '/'}
+                  onClick={() => navigate('/')}
                   className="w-full text-left p-4 grocery-gradient-light border border-purple-200 rounded-lg hover:opacity-90 transition-all duration-200 text-purple-900"
                 >
                   <div className="flex items-center gap-3">

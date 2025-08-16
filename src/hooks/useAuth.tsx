@@ -172,6 +172,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           email: '',
           role: 'student',
           currency: 'USD',
+          budget: 0,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           birth_day: null,
@@ -193,6 +194,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: '',
         role: 'student',
         currency: 'USD',
+        budget: 0,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         birth_day: null,
@@ -230,6 +232,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (updates.full_name !== undefined) dbUpdates.full_name = updates.full_name;
         if (updates.email !== undefined) dbUpdates.email = updates.email;
         if (updates.currency !== undefined) dbUpdates.currency = updates.currency;
+        if (updates.budget !== undefined) dbUpdates.budget = updates.budget;
         if (updates.role && ['admin', 'category_manager', 'student'].includes(updates.role)) {
           dbUpdates.role = updates.role;
         }

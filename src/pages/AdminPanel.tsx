@@ -5,6 +5,8 @@ import GroceryHeader from '@/components/GroceryHeader';
 import BrandManagement from '@/components/BrandManagement';
 import BudgetManagement from '@/components/BudgetManagement';
 import CurrencySelector from '@/components/CurrencySelector';
+import ProductManagement from '@/components/ProductManagement';
+import { DatabaseStatus } from '@/components/DatabaseStatus';
 
 const AdminPanel = () => {
   const { user, profile, loading, isAdmin, isCategoryManager } = useAuth();
@@ -44,10 +46,16 @@ const AdminPanel = () => {
         return; // Allow access for debugging
       }
       
+      // Also allow access if profile role is admin
+      if (profile?.role === 'admin') {
+        console.log('✅ AdminPanel - Allowing access for admin role');
+        return;
+      }
+      
       // Enforce proper role-based access control
       if (!isAdmin && !isCategoryManager) {
         console.log('❌ AdminPanel - Access denied. User role:', profile?.role, 'isAdmin:', isAdmin, 'isCategoryManager:', isCategoryManager);
-        navigate('/404'); // Redirect to 404 page instead of home to hide admin existence
+        navigate('/auth'); // Redirect to auth instead of 404 for better UX
         return;
       }
       
@@ -100,6 +108,7 @@ const AdminPanel = () => {
         {/* Admin Features */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="space-y-6">
+            <ProductManagement />
             <BrandManagement />
           </div>
           
@@ -168,6 +177,20 @@ const AdminPanel = () => {
                 )}
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Diagnostics Section */}
+        <div className="mt-8 space-y-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              System Diagnostics
+            </h2>
+            <p className="text-gray-600 mb-6">Monitor system health and database connectivity</p>
+            <DatabaseStatus />
           </div>
         </div>
       </div>

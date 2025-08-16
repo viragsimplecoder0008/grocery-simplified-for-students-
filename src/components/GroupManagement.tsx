@@ -183,14 +183,14 @@ export function GroupManagement() {
       </Card>
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Group Management</h1>
-          <p className="text-gray-600 mt-2">Collaborate with your team on grocery lists</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Group Management</h1>
+          <p className="text-gray-600 mt-2 text-sm sm:text-base">Collaborate with your team on grocery lists</p>
         </div>
         
         {/* Notifications */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 justify-center sm:justify-end">
           <Dialog>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm" className="relative">
@@ -213,6 +213,9 @@ export function GroupManagement() {
                     </Button>
                   )}
                 </DialogTitle>
+                <DialogDescription>
+                  View your group invitations and notifications
+                </DialogDescription>
               </DialogHeader>
               <div className="max-h-96 overflow-y-auto space-y-2">
                 {notifications.length === 0 ? (
@@ -244,13 +247,19 @@ export function GroupManagement() {
       </div>
 
       <Tabs defaultValue="my-groups" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="my-groups">My Groups ({userGroups.length}/3)</TabsTrigger>
-          <TabsTrigger value="split-bills">
-            <DollarSign className="w-4 h-4 mr-2" />
-            Split Bills
+        <TabsList className={`grid w-full ${userGroups.length === 0 ? 'grid-cols-1' : 'grid-cols-2 sm:grid-cols-3'}`}>
+          <TabsTrigger value="my-groups" className="text-xs sm:text-sm">My Groups ({userGroups.length}/3)</TabsTrigger>
+          {userGroups.length > 0 && (
+            <TabsTrigger value="split-bills" className="text-xs sm:text-sm">
+              <DollarSign className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Split Bills</span>
+              <span className="sm:hidden">Bills</span>
+            </TabsTrigger>
+          )}
+          <TabsTrigger value="join-create" className="text-xs sm:text-sm">
+            <span className="hidden sm:inline">Join or Create</span>
+            <span className="sm:hidden">Join/Create</span>
           </TabsTrigger>
-          <TabsTrigger value="join-create">Join or Create</TabsTrigger>
         </TabsList>
 
         {/* My Groups Tab */}

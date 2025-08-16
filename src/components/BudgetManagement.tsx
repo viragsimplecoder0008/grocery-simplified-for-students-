@@ -16,7 +16,7 @@ import { BudgetRequest, Group } from '@/types/grocery';
 import { toast } from 'sonner';
 
 const BudgetManagement = () => {
-  const { user, profile } = useAuth();
+  const { user, profile, updateProfile } = useAuth();
   const { userGroups: groups } = useGroups();
   const { currency } = useCurrency();
   const currencySymbol = getCurrencySymbol(currency);
@@ -63,20 +63,10 @@ const BudgetManagement = () => {
     try {
       setLoading(true);
 
-      // Try to update in database first
-      try {
-        // Since budget column doesn't exist in profiles table yet, skip database update
-        throw new Error('Budget column not available in database');
-      } catch (dbError) {
-        // Fallback to localStorage
-        const localProfile = JSON.parse(localStorage.getItem(`fallback_profile_${user.id}`) || '{}');
-        localProfile.budget = newBudget;
-        localProfile.budget_updated_at = new Date().toISOString();
-        localStorage.setItem(`fallback_profile_${user.id}`, JSON.stringify(localProfile));
-        
-        toast.success('Personal budget updated successfully (offline mode)');
-      }
-
+      // Update the profile through the useAuth hook (which handles both database and localStorage)
+      await updateProfile({ budget: newBudget });
+      
+      toast.success('Personal budget updated successfully!');
       setDialogOpen(false);
       setFormData({ budget: '', groupId: '', notes: '' });
     } catch (error: any) {
