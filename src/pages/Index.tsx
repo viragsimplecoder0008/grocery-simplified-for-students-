@@ -10,7 +10,6 @@ import { toast } from "sonner";
 import GroceryHeader from "@/components/GroceryHeader";
 import BudgetCard from "@/components/BudgetCard";
 import { AIRecommendations } from "@/components/AIRecommendations";
-import BackendTest from "@/components/BackendTest"; // TEMPORARY: for testing
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -199,9 +198,6 @@ const Index = () => {
               <TabsTrigger value="recommendations" className="flex items-center gap-2">
                 <ShoppingCart className="w-4 h-4" />
                 AI Suggestions
-              </TabsTrigger>
-              <TabsTrigger value="backend-test" className="flex items-center gap-2">
-                🧪 Backend Test
               </TabsTrigger>
             </TabsList>
 
@@ -485,10 +481,6 @@ const Index = () => {
 
           <TabsContent value="recommendations">
             <AIRecommendations />
-          </TabsContent>
-
-          <TabsContent value="backend-test">
-            <BackendTest />
           </TabsContent>
         </Tabs>
       </div>
